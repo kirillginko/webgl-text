@@ -112,7 +112,7 @@ export default function ModelViewer() {
         width: "100vw",
         height: "100vh",
         pointerEvents: "none", // Allow clicking through to text
-        zIndex: 2, // Position between text and WebGL text effect
+        zIndex: 1, // Position between text and WebGL text effect
         overflow: "hidden", // Prevent any potential scrolling
       }}
     />
