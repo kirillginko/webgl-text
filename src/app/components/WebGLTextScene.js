@@ -105,49 +105,49 @@ void main() {
     scrollTextCoords.x = (scrollTextCoords.x + 1.0) * 0.5;
 
     // Add chromatic aberration with wave effect
-    float aberrationStrength = abs(uScrollEffect) * 0.0008;
-    float noiseIntensity = abs(uScrollEffect) * 0.08 + 0.02; // Increased noise
+    float aberrationStrength = abs(uScrollEffect) * 0.0003;
+    float noiseIntensity = abs(uScrollEffect) * 0.05 + 0.01;
     
-    // Create wave offsets for RGB channels
-    float waveFrequency = 8.0;
-    float waveAmplitude = aberrationStrength * 2.0;
-    float timeOffset = uScrollEffect * 0.1;
+    // Create wave offsets for RGB channels with reduced amplitude
+    float waveFrequency = 6.0;
+    float waveAmplitude = aberrationStrength * 1.0;
+    float timeOffset = uScrollEffect * 0.05;
     
     // Calculate wave offsets for each channel
     float redWave = sin(scrollTextCoords.y * waveFrequency + timeOffset) * waveAmplitude;
     float greenWave = sin(scrollTextCoords.y * waveFrequency + timeOffset + 2.094) * waveAmplitude;
     float blueWave = sin(scrollTextCoords.y * waveFrequency + timeOffset + 4.189) * waveAmplitude;
     
-    vec2 redOffset = scrollTextCoords + vec2(redWave, aberrationStrength * 0.25);
+    vec2 redOffset = scrollTextCoords + vec2(redWave, aberrationStrength * 0.1);
     vec2 greenOffset = scrollTextCoords + vec2(greenWave, 0.0);
-    vec2 blueOffset = scrollTextCoords + vec2(blueWave, -aberrationStrength * 0.25);
+    vec2 blueOffset = scrollTextCoords + vec2(blueWave, -aberrationStrength * 0.1);
     
-    // Apply increased blur
-    float blurStrength = abs(uScrollEffect) * 0.5 + 0.6; // Increased base blur and scroll effect
+    // Apply minimal blur
+    float blurStrength = abs(uScrollEffect) * 0.15 + 0.2; // Significantly reduced blur
     vec4 red = blur(uRenderTexture, redOffset, blurStrength);
     vec4 green = blur(uRenderTexture, greenOffset, blurStrength);
     vec4 blue = blur(uRenderTexture, blueOffset, blurStrength);
     
-    // Add enhanced noise
-    vec2 noiseCoord = vTextureCoord * 150.0; // Increased noise frequency
+    // Add subtle noise
+    vec2 noiseCoord = vTextureCoord * 120.0;
     float noise = random(noiseCoord + vec2(uScrollEffect)) * noiseIntensity;
-    float dynamicNoise = noise * (1.0 + abs(uScrollEffect) * 0.2); // Noise increases with scroll
+    float dynamicNoise = noise * (1.0 + abs(uScrollEffect) * 0.1);
     
     // Dynamic brightness compensation based on scroll speed
     float scrollFactor = abs(uScrollEffect);
-    float brightnessBoost = 1.0 + scrollFactor * 0.03;
+    float brightnessBoost = 1.0 + scrollFactor * 0.04;
     
     // Combine channels with wave effect and brightness compensation
     vec4 finalColor = vec4(
-        min(1.0, (red.r + dynamicNoise * 0.4) * brightnessBoost),
-        min(1.0, (green.g + dynamicNoise * 0.3) * brightnessBoost),
-        min(1.0, (blue.b + dynamicNoise * 0.5) * brightnessBoost),
+        min(1.0, (red.r + dynamicNoise * 0.3) * brightnessBoost),
+        min(1.0, (green.g + dynamicNoise * 0.2) * brightnessBoost),
+        min(1.0, (blue.b + dynamicNoise * 0.3) * brightnessBoost),
         (red.a + green.a + blue.a) / 3.0
     );
     
     // Enhanced minimum brightness with smooth transition
     float luminance = dot(finalColor.rgb, vec3(0.299, 0.587, 0.114));
-    float minBrightness = 0.5 + scrollFactor * 0.1;
+    float minBrightness = 0.6 + scrollFactor * 0.1;
     float smoothFactor = smoothstep(0.0, 0.5, luminance);
     
     if (luminance < minBrightness && finalColor.a > 0.1) {
