@@ -1,95 +1,73 @@
-import Image from "next/image";
+import WebGLTextScene from "./components/WebGLTextScene";
 import styles from "./page.module.css";
 
 export default function Home() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <main>
+      <WebGLTextScene />
+      <div className={styles.content}>
+        <h1 className={styles.contentH1}>
+          <span className={`${styles.textPlane}  text-plane`}>
+            Hard.Services
+          </span>
+        </h1>
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+        <h2 className={styles.contentH2}>
+          <span className={`${styles.textPlane} text-plane`}>
+            Multi-Disciplinary Design Agency
+          </span>
+        </h2>
+
+        <div className={styles.textBlock}>
+          <p>
+            <span className={`${styles.textPlane} text-plane`}>
+              This is an example of how we can render whole blocks of text to
+              WebGL thanks to curtains.js and the TextTexture class.
+            </span>
+          </p>
+          <p>
+            <span className={`${styles.textPlane} text-plane`}>
+              A WebGL plane is created for all elements that have a
+              &quot;text-plane&quot; class and their text contents are drawn
+              inside a 2D canvas, which is then used as a WebGL texture.
+            </span>
+          </p>
         </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        <div className={styles.scrollBlock}>
+          <p>
+            <span className={`${styles.textPlane} text-plane`}>
+              We&apos;re using an additional shader pass to add a cool effect on
+              scroll that makes you feel like the content is actually dragged.
+            </span>
+          </p>
+          <p>
+            <span className={`${styles.textPlane} text-plane`}>
+              Try to scroll down to see what happens!
+            </span>
+          </p>
+        </div>
+
+        <div className={styles.lipsumBlock}>
+          <p>
+            <span className={`${styles.textPlane} text-plane`}>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+              Pellentesque a dolor posuere nisi tempus rhoncus. Curabitur
+              venenatis velit a tellus porttitor, sed efficitur ipsum volutpat.
+              Nunc ante ante, convallis in commodo eget, semper ac ex. Fusce
+              lobortis risus vel nisl interdum imperdiet. Nulla facilisi
+            </span>
+          </p>
+          <p>
+            <span className={`${styles.textPlane} text-plane`}>
+              Cras hendrerit iaculis est at vestibulum. Integer tincidunt mi id
+              metus mollis, in fermentum odio sagittis. Vestibulum ante ipsum
+              primis in faucibus orci luctus et ultrices posuere cubilia curae;
+              Phasellus in efficitur diam.
+            </span>
+          </p>
+        </div>
+      </div>
+    </main>
   );
 }
