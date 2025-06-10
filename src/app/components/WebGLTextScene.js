@@ -59,30 +59,67 @@ varying vec2 vTextureCoord;
 uniform sampler2D uRenderTexture;
 uniform float uScrollEffect;
 uniform float uScrollStrength;
+uniform vec2 uResolution;
 
-// Noise function
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 }
 
-// Blur function
-vec4 blur(sampler2D texture, vec2 uv, float blur) {
+vec2 fluid_noise(vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+    
+    float a = random(i);
+    float b = random(i + vec2(1.0, 0.0));
+    float c = random(i + vec2(0.0, 1.0));
+    float d = random(i + vec2(1.0, 1.0));
+
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    float noise = mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+    
+    return vec2(noise, noise * 1.2);
+}
+
+vec4 inkDiffusion(sampler2D texture, vec2 uv, float strength) {
+    vec2 pixel = 1.0 / uResolution;
+    vec4 color = vec4(0.0);
+    float total = 0.0;
+    
+    for(float i = -2.0; i <= 2.0; i++) {
+        for(float j = -2.0; j <= 2.0; j++) {
+            vec2 offset = vec2(i, j) * pixel * strength;
+            vec2 noise_offset = fluid_noise(uv * 10.0 + offset) * strength * 0.2;
+            vec2 sample_pos = uv + offset + noise_offset;
+            
+            float weight = 1.0 - length(vec2(i, j)) * 0.1;
+            weight = max(0.0, weight);
+            
+            color += texture2D(texture, sample_pos) * weight;
+            total += weight;
+        }
+    }
+    
+    return color / total;
+}
+
+vec4 inkBlur(sampler2D texture, vec2 uv, float blur) {
     vec4 color = vec4(0.0);
     float total = 0.0;
     float offset = random(uv) * 0.012;
-
-    // 9-tap gaussian blur
-    vec2 blurCoord = vec2(blur * 0.0025, blur * 0.0025);
     
-    color += texture2D(texture, uv);
-    color += texture2D(texture, uv + vec2(blurCoord.x, 0.0));
-    color += texture2D(texture, uv + vec2(-blurCoord.x, 0.0));
-    color += texture2D(texture, uv + vec2(0.0, blurCoord.y));
-    color += texture2D(texture, uv + vec2(0.0, -blurCoord.y));
-    color += texture2D(texture, uv + vec2(blurCoord.x, blurCoord.y) * 0.7);
-    color += texture2D(texture, uv + vec2(-blurCoord.x, blurCoord.y) * 0.7);
-    color += texture2D(texture, uv + vec2(blurCoord.x, -blurCoord.y) * 0.7);
-    color += texture2D(texture, uv + vec2(-blurCoord.x, -blurCoord.y) * 0.7);
+    vec2 fluidOffset = fluid_noise(uv * 5.0 + vec2(uScrollEffect * 0.1)) * blur * 0.3;
+    vec2 blurCoord = vec2(blur * 0.003, blur * 0.003);
+    vec2 baseUV = uv + fluidOffset;
+    
+    color += texture2D(texture, baseUV);
+    color += texture2D(texture, baseUV + vec2(blurCoord.x, 0.0));
+    color += texture2D(texture, baseUV + vec2(-blurCoord.x, 0.0));
+    color += texture2D(texture, baseUV + vec2(0.0, blurCoord.y));
+    color += texture2D(texture, baseUV + vec2(0.0, -blurCoord.y));
+    color += texture2D(texture, baseUV + vec2(blurCoord.x, blurCoord.y) * 0.7);
+    color += texture2D(texture, baseUV + vec2(-blurCoord.x, blurCoord.y) * 0.7);
+    color += texture2D(texture, baseUV + vec2(blurCoord.x, -blurCoord.y) * 0.7);
+    color += texture2D(texture, baseUV + vec2(-blurCoord.x, -blurCoord.y) * 0.7);
     
     return color / 9.0;
 }
@@ -91,29 +128,38 @@ void main() {
     vec2 scrollTextCoords = vTextureCoord;
     float horizontalStretch;
 
+    vec2 fluidDistortion = fluid_noise(scrollTextCoords * 6.0 + uScrollEffect * 0.05) * abs(uScrollEffect) * 0.005;
+    scrollTextCoords += fluidDistortion;
+
     if(uScrollEffect >= 0.0) {
-        scrollTextCoords.y *= 1.0 + -uScrollEffect * 0.00625 * uScrollStrength;
+        scrollTextCoords.y *= 1.0 + -uScrollEffect * 0.002 * uScrollStrength;
         horizontalStretch = sin(scrollTextCoords.y);
     }
     else if(uScrollEffect < 0.0) {
-        scrollTextCoords.y += (scrollTextCoords.y - 1.0) * uScrollEffect * 0.00625 * uScrollStrength;
+        scrollTextCoords.y += (scrollTextCoords.y - 1.0) * uScrollEffect * 0.002 * uScrollStrength;
         horizontalStretch = sin(-1.0 * (1.0 - scrollTextCoords.y));
     }
 
     scrollTextCoords.x = scrollTextCoords.x * 2.0 - 1.0;
-    scrollTextCoords.x *= 1.0 + uScrollEffect * 0.0035 * horizontalStretch * uScrollStrength;
+    scrollTextCoords.x *= 1.0 + uScrollEffect * 0.001 * horizontalStretch * uScrollStrength;
     scrollTextCoords.x = (scrollTextCoords.x + 1.0) * 0.5;
 
-    // Add chromatic aberration with wave effect
-    float aberrationStrength = abs(uScrollEffect) * 0.0003;
-    float noiseIntensity = abs(uScrollEffect) * 0.05 + 0.01;
+    float aberrationStrength = abs(uScrollEffect) * 0.0001;
+    float noiseIntensity = abs(uScrollEffect) * 0.015 + 0.005;
     
-    // Create wave offsets for RGB channels with reduced amplitude
-    float waveFrequency = 6.0;
-    float waveAmplitude = aberrationStrength * 1.0;
-    float timeOffset = uScrollEffect * 0.05;
+    float waveFrequency = 0.0005;
+    float waveAmplitude = aberrationStrength * 0.75;
+    float timeOffset = uScrollEffect * 0.02;
     
-    // Calculate wave offsets for each channel
+    vec3 warmColor = vec3(1.0, 0.4, 0.1);
+    vec3 coolColor = vec3(0.1, 0.4, 1.0);
+    vec3 heatColor = uScrollEffect > 0.0 ? warmColor : coolColor;
+    float heatIntensity = abs(uScrollEffect) * 0.05;
+    heatIntensity = smoothstep(0.0, 0.8, heatIntensity);
+    
+    float mixFactor = smoothstep(-30.0, 30.0, uScrollEffect) * 0.5 + 0.5;
+    heatColor = mix(coolColor, warmColor, mixFactor);
+    
     float redWave = sin(scrollTextCoords.y * waveFrequency + timeOffset) * waveAmplitude;
     float greenWave = sin(scrollTextCoords.y * waveFrequency + timeOffset + 2.094) * waveAmplitude;
     float blueWave = sin(scrollTextCoords.y * waveFrequency + timeOffset + 4.189) * waveAmplitude;
@@ -122,22 +168,23 @@ void main() {
     vec2 greenOffset = scrollTextCoords + vec2(greenWave, 0.0);
     vec2 blueOffset = scrollTextCoords + vec2(blueWave, -aberrationStrength * 0.1);
     
-    // Apply minimal blur
-    float blurStrength = abs(uScrollEffect) * 0.15 + 0.2; // Significantly reduced blur
-    vec4 red = blur(uRenderTexture, redOffset, blurStrength);
-    vec4 green = blur(uRenderTexture, greenOffset, blurStrength);
-    vec4 blue = blur(uRenderTexture, blueOffset, blurStrength);
+    float inkStrength = abs(uScrollEffect) * 0.05 + 0.1;
+    vec4 red = inkBlur(uRenderTexture, redOffset, inkStrength);
+    vec4 green = inkBlur(uRenderTexture, greenOffset, inkStrength);
+    vec4 blue = inkBlur(uRenderTexture, blueOffset, inkStrength);
     
-    // Add subtle noise
+    float diffusionStrength = abs(uScrollEffect) * 0.15 + 0.03;
+    red = inkDiffusion(uRenderTexture, redOffset, diffusionStrength);
+    green = inkDiffusion(uRenderTexture, greenOffset, diffusionStrength);
+    blue = inkDiffusion(uRenderTexture, blueOffset, diffusionStrength);
+    
     vec2 noiseCoord = vTextureCoord * 120.0;
     float noise = random(noiseCoord + vec2(uScrollEffect)) * noiseIntensity;
     float dynamicNoise = noise * (1.0 + abs(uScrollEffect) * 0.1);
     
-    // Dynamic brightness compensation based on scroll speed
     float scrollFactor = abs(uScrollEffect);
     float brightnessBoost = 1.0 + scrollFactor * 0.04;
     
-    // Combine channels with wave effect and brightness compensation
     vec4 finalColor = vec4(
         min(1.0, (red.r + dynamicNoise * 0.3) * brightnessBoost),
         min(1.0, (green.g + dynamicNoise * 0.2) * brightnessBoost),
@@ -145,7 +192,12 @@ void main() {
         (red.a + green.a + blue.a) / 3.0
     );
     
-    // Enhanced minimum brightness with smooth transition
+    finalColor.rgb = mix(
+        finalColor.rgb,
+        finalColor.rgb * heatColor,
+        heatIntensity
+    );
+    
     float luminance = dot(finalColor.rgb, vec3(0.299, 0.587, 0.114));
     float minBrightness = 0.6 + scrollFactor * 0.1;
     float smoothFactor = smoothstep(0.0, 0.5, luminance);
@@ -197,6 +249,14 @@ void main() {
                         type: "1f",
                         value: 2.5,
                       },
+                      resolution: {
+                        name: "uResolution",
+                        type: "2f",
+                        value: [
+                          curtains.renderer.canvas.width,
+                          curtains.renderer.canvas.height,
+                        ],
+                      },
                     },
                   });
 
@@ -213,6 +273,10 @@ void main() {
                       0.05
                     );
                     scrollPass.uniforms.scrollEffect.value = scroll.effect;
+                    scrollPass.uniforms.resolution.value = [
+                      curtains.renderer.canvas.width,
+                      curtains.renderer.canvas.height,
+                    ];
                   });
 
                   const textEls = document.querySelectorAll(".text-plane");

@@ -1,12 +1,12 @@
 import WebGLTextScene from "./components/WebGLTextScene";
-import ModelViewer from "./components/ModelViewer";
+//import ModelViewer from "./components/ModelViewer";
+import WebGLImageScene from "./components/WebGLImageScene";
 import styles from "./page.module.css";
 
 export default function Home() {
   return (
     <main>
       <WebGLTextScene />
-      <ModelViewer />
       <div className={styles.content}>
         <h1 className={styles.contentH1}>
           <span className={`${styles.textPlane}  text-plane`}>
@@ -23,15 +23,18 @@ export default function Home() {
         <div className={styles.textBlock}>
           <p>
             <span className={`${styles.textPlane} text-plane`}>
-              This is an example of how we can render whole blocks of text to
-              WebGL thanks to curtains.js and the TextTexture class.
+              is a design studio centered on new ideas and defining experiences,
+              partnering with our generation’s leading brands and innovators to
+              influence culture. Our approach challenges industry standards,
+              adopts new technologies, and has a lasting positive impact on
+              ourselves and others.
             </span>
           </p>
           <p>
             <span className={`${styles.textPlane} text-plane`}>
-              A WebGL plane is created for all elements that have a
-              &quot;text-plane&quot; class and their text contents are drawn
-              inside a 2D canvas, which is then used as a WebGL texture.
+              Over time, the work has naturally led us toward industry leaders
+              across Art, Architecture, Fashion, Sustainability, Technology, and
+              beyond.
             </span>
           </p>
         </div>
@@ -39,8 +42,11 @@ export default function Home() {
         <div className={styles.scrollBlock}>
           <p>
             <span className={`${styles.textPlane} text-plane`}>
-              We&apos;re using an additional shader pass to add a cool effect on
-              scroll that makes you feel like the content is actually dragged.
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+              Pellentesque a dolor posuere nisi tempus rhoncus. Curabitur
+              venenatis velit a tellus porttitor, sed efficitur ipsum volutpat.
+              Nunc ante ante, convallis in commodo eget, semper ac ex. Fusce
+              lobortis risus vel nisl interdum imperdiet. Nulla facilisi
             </span>
           </p>
           <p>
@@ -53,11 +59,11 @@ export default function Home() {
         <div className={styles.lipsumBlock}>
           <p>
             <span className={`${styles.textPlane} text-plane`}>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-              Pellentesque a dolor posuere nisi tempus rhoncus. Curabitur
-              venenatis velit a tellus porttitor, sed efficitur ipsum volutpat.
-              Nunc ante ante, convallis in commodo eget, semper ac ex. Fusce
-              lobortis risus vel nisl interdum imperdiet. Nulla facilisi
+              We believe that great design begins with great type. Our mission
+              is to create a design language that are not just visually striking
+              but also versatile, functional, and timeless. Whether you’re a
+              designer, brand strategist, or creative, our work are crafted to
+              inspire and elevate.
             </span>
           </p>
           <p>
