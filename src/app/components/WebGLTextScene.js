@@ -60,6 +60,33 @@ uniform sampler2D uRenderTexture;
 uniform float uScrollEffect;
 uniform float uScrollStrength;
 
+// Noise function
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+// Blur function
+vec4 blur(sampler2D texture, vec2 uv, float blur) {
+    vec4 color = vec4(0.0);
+    float total = 0.0;
+    float offset = random(uv) * 0.012;
+
+    // 9-tap gaussian blur
+    vec2 blurCoord = vec2(blur * 0.0025, blur * 0.0025);
+    
+    color += texture2D(texture, uv);
+    color += texture2D(texture, uv + vec2(blurCoord.x, 0.0));
+    color += texture2D(texture, uv + vec2(-blurCoord.x, 0.0));
+    color += texture2D(texture, uv + vec2(0.0, blurCoord.y));
+    color += texture2D(texture, uv + vec2(0.0, -blurCoord.y));
+    color += texture2D(texture, uv + vec2(blurCoord.x, blurCoord.y) * 0.7);
+    color += texture2D(texture, uv + vec2(-blurCoord.x, blurCoord.y) * 0.7);
+    color += texture2D(texture, uv + vec2(blurCoord.x, -blurCoord.y) * 0.7);
+    color += texture2D(texture, uv + vec2(-blurCoord.x, -blurCoord.y) * 0.7);
+    
+    return color / 9.0;
+}
+
 void main() {
     vec2 scrollTextCoords = vTextureCoord;
     float horizontalStretch;
@@ -77,7 +104,58 @@ void main() {
     scrollTextCoords.x *= 1.0 + uScrollEffect * 0.0035 * horizontalStretch * uScrollStrength;
     scrollTextCoords.x = (scrollTextCoords.x + 1.0) * 0.5;
 
-    gl_FragColor = texture2D(uRenderTexture, scrollTextCoords);
+    // Add chromatic aberration with wave effect
+    float aberrationStrength = abs(uScrollEffect) * 0.0008;
+    float noiseIntensity = abs(uScrollEffect) * 0.08 + 0.02; // Increased noise
+    
+    // Create wave offsets for RGB channels
+    float waveFrequency = 8.0;
+    float waveAmplitude = aberrationStrength * 2.0;
+    float timeOffset = uScrollEffect * 0.1;
+    
+    // Calculate wave offsets for each channel
+    float redWave = sin(scrollTextCoords.y * waveFrequency + timeOffset) * waveAmplitude;
+    float greenWave = sin(scrollTextCoords.y * waveFrequency + timeOffset + 2.094) * waveAmplitude;
+    float blueWave = sin(scrollTextCoords.y * waveFrequency + timeOffset + 4.189) * waveAmplitude;
+    
+    vec2 redOffset = scrollTextCoords + vec2(redWave, aberrationStrength * 0.25);
+    vec2 greenOffset = scrollTextCoords + vec2(greenWave, 0.0);
+    vec2 blueOffset = scrollTextCoords + vec2(blueWave, -aberrationStrength * 0.25);
+    
+    // Apply increased blur
+    float blurStrength = abs(uScrollEffect) * 0.5 + 0.6; // Increased base blur and scroll effect
+    vec4 red = blur(uRenderTexture, redOffset, blurStrength);
+    vec4 green = blur(uRenderTexture, greenOffset, blurStrength);
+    vec4 blue = blur(uRenderTexture, blueOffset, blurStrength);
+    
+    // Add enhanced noise
+    vec2 noiseCoord = vTextureCoord * 150.0; // Increased noise frequency
+    float noise = random(noiseCoord + vec2(uScrollEffect)) * noiseIntensity;
+    float dynamicNoise = noise * (1.0 + abs(uScrollEffect) * 0.2); // Noise increases with scroll
+    
+    // Dynamic brightness compensation based on scroll speed
+    float scrollFactor = abs(uScrollEffect);
+    float brightnessBoost = 1.0 + scrollFactor * 0.03;
+    
+    // Combine channels with wave effect and brightness compensation
+    vec4 finalColor = vec4(
+        min(1.0, (red.r + dynamicNoise * 0.4) * brightnessBoost),
+        min(1.0, (green.g + dynamicNoise * 0.3) * brightnessBoost),
+        min(1.0, (blue.b + dynamicNoise * 0.5) * brightnessBoost),
+        (red.a + green.a + blue.a) / 3.0
+    );
+    
+    // Enhanced minimum brightness with smooth transition
+    float luminance = dot(finalColor.rgb, vec3(0.299, 0.587, 0.114));
+    float minBrightness = 0.5 + scrollFactor * 0.1;
+    float smoothFactor = smoothstep(0.0, 0.5, luminance);
+    
+    if (luminance < minBrightness && finalColor.a > 0.1) {
+        float brightnessFactor = mix(minBrightness / max(luminance, 0.001), 1.0, smoothFactor);
+        finalColor.rgb = min(finalColor.rgb * brightnessFactor, vec3(1.0));
+    }
+    
+    gl_FragColor = finalColor;
 }`;
 
     // Initialize Curtains

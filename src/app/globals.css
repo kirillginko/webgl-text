@@ -12,7 +12,7 @@ body {
   line-height: 1.2;
   color: #0505af;
   font-size: 2vw;
-  background-color: #000;
+  /* background-color: #000; */
 }
 
 #canvas {
