@@ -1,12 +1,11 @@
 import WebGLTextScene from "./components/WebGLTextScene";
-import ModelViewer from "./components/ModelViewer";
+import PixelizedVideoGrid from "./components/PixelizedVideoGrid";
 import styles from "./page.module.css";
 
 export default function Home() {
   return (
     <main>
       <WebGLTextScene />
-      <ModelViewer />
       <div className={styles.content}>
         <h1 className={styles.contentH1}>
           <span className={`${styles.textPlane}  text-plane`}>
@@ -70,6 +69,16 @@ export default function Home() {
           </p>
         </div>
       </div>
+      <PixelizedVideoGrid
+        videoSrc="/willow.mp4"
+        gridSize={150}
+        variant="fullHeight"
+        ditherIntensity={0}
+        chromaticAberration={2}
+        colorShiftSpeed={2}
+        pixelGap={0.4}
+        ghostingIntensity={2}
+      />
     </main>
   );
 }

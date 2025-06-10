@@ -110,17 +110,28 @@ void main() {
     
     // Create wave offsets for RGB channels with reduced amplitude
     float waveFrequency = 6.0;
-    float waveAmplitude = aberrationStrength * 1.0;
+    float waveAmplitude = aberrationStrength * 1.5;
     float timeOffset = uScrollEffect * 0.05;
+    
+    // Calculate heatmap color based on scroll speed and direction
+    vec3 warmColor = vec3(1.0, 0.4, 0.1); // warm orange/red
+    vec3 coolColor = vec3(0.1, 0.4, 1.0); // cool blue
+    vec3 heatColor = uScrollEffect > 0.0 ? warmColor : coolColor;
+    float heatIntensity = abs(uScrollEffect) * 0.05;
+    heatIntensity = smoothstep(0.0, 0.8, heatIntensity); // smooth transition
+    
+    // Add subtle color mixing based on scroll intensity
+    float mixFactor = smoothstep(-30.0, 30.0, uScrollEffect) * 0.5 + 0.5;
+    heatColor = mix(coolColor, warmColor, mixFactor);
     
     // Calculate wave offsets for each channel
     float redWave = sin(scrollTextCoords.y * waveFrequency + timeOffset) * waveAmplitude;
     float greenWave = sin(scrollTextCoords.y * waveFrequency + timeOffset + 2.094) * waveAmplitude;
     float blueWave = sin(scrollTextCoords.y * waveFrequency + timeOffset + 4.189) * waveAmplitude;
     
-    vec2 redOffset = scrollTextCoords + vec2(redWave, aberrationStrength * 0.1);
+    vec2 redOffset = scrollTextCoords + vec2(redWave, aberrationStrength * 0.2);
     vec2 greenOffset = scrollTextCoords + vec2(greenWave, 0.0);
-    vec2 blueOffset = scrollTextCoords + vec2(blueWave, -aberrationStrength * 0.1);
+    vec2 blueOffset = scrollTextCoords + vec2(blueWave, -aberrationStrength * 0.2);
     
     // Apply minimal blur
     float blurStrength = abs(uScrollEffect) * 0.15 + 0.2; // Significantly reduced blur
@@ -143,6 +154,13 @@ void main() {
         min(1.0, (green.g + dynamicNoise * 0.2) * brightnessBoost),
         min(1.0, (blue.b + dynamicNoise * 0.3) * brightnessBoost),
         (red.a + green.a + blue.a) / 3.0
+    );
+    
+    // Apply heatmap effect
+    finalColor.rgb = mix(
+        finalColor.rgb,
+        finalColor.rgb * heatColor,
+        heatIntensity
     );
     
     // Enhanced minimum brightness with smooth transition
