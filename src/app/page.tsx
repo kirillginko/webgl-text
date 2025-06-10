@@ -1,10 +1,12 @@
 import WebGLTextScene from "./components/WebGLTextScene";
+import ModelViewer from "./components/ModelViewer";
 import styles from "./page.module.css";
 
 export default function Home() {
   return (
     <main>
       <WebGLTextScene />
+      <ModelViewer />
       <div className={styles.content}>
         <h1 className={styles.contentH1}>
           <span className={`${styles.textPlane}  text-plane`}>
