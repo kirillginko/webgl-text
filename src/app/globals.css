@@ -4,6 +4,19 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Archivo+Black:wght@400&family=Merriweather+Sans:wght@300;400&display=swap");
 
+:root {
+  --white: #fdf9f3;
+  --bg: #fdf9f3;
+  --dark-bg: #211f22;
+  --light-gray: #e4e4e4;
+  --pink: #ff6188;
+  --orange: #fc9867;
+  --yellow: #ffd866;
+  --green: #a9dc76;
+  --blue: #78dce8;
+  --purple: #ab9df2;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
