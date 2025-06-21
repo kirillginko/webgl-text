@@ -1,12 +1,7 @@
 "use client";
 
-import AsciiText from "./components/AsciiText";
+import TabletVideoDebug from "./components/TabletVideo/TabletVideoDebug";
 
 export default function Home() {
-  return (
-    <main className="min-h-screen bg-black">
-      <AsciiText text="OBLAST" fontSize={400} fontFamily="IBM Plex Mono" />
-      <AsciiText text="STUDIOS" fontSize={400} fontFamily="IBM Plex Mono" />
-    </main>
-  );
+  return <TabletVideoDebug videoSrc="/willow.mp4" targetMeshId={43} />;
 }
