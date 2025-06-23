@@ -1,8 +1,7 @@
 .container {
   position: relative;
   width: 100%;
-  height: 100vh;
-  min-height: 100vh;
+  height: 100%;
   background: transparent;
   display: flex;
   align-items: center;
@@ -16,4 +15,16 @@
   width: 100% !important;
   height: 100% !important;
   pointer-events: auto;
+}
+
+.wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
