@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { vertexShader, fragmentShader } from "../shaders/AsciiShaders";
+import { vertexShader, fragmentShader } from "../../shaders/AsciiShaders";
 import styles from "./AsciiText.module.css";
 
 // Add Math.map utility like in original
