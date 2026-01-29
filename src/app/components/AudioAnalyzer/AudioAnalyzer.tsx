@@ -2,15 +2,15 @@
 
 import { useRef, useState, useCallback, useEffect, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { ContactShadows } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { createAudio, AudioSource } from "./createAudio";
 import Track from "./Track";
 import Zoom from "./Zoom";
 
 const TRACKS = [
-  { url: "/sounds/(Synth).wav", z: -0.25, label: "Synth" },
+  { url: "/sounds/(Synth).wav", z: -2.5, label: "Synth" },
   { url: "/sounds/(Bass).wav", z: 0, label: "Bass" },
-  { url: "/sounds/(Drums).wav", z: 0.25, label: "Drums" },
+  { url: "/sounds/(Drums).wav", z: 2.5, label: "Drums" },
 ];
 
 export default function AudioAnalyzer() {
@@ -129,26 +129,27 @@ export default function AudioAnalyzer() {
           position: "fixed",
           inset: 0,
           zIndex: 1,
-          background:
-            "linear-gradient(15deg, rgb(82, 81, 88) 0%, rgb(255, 247, 248) 100%)",
+          background: "#801336",
           cursor: !playing ? "pointer" : "default",
         }}
       >
         <Canvas
           shadows
           dpr={[1, 2]}
-          camera={{ position: [-1, 1.5, 2], fov: 25 }}
-          gl={{ alpha: true }}
+          camera={{ position: [10, 10, 10], fov: 20 }}
+          gl={{ antialias: true, alpha: true }}
           style={{ background: "transparent" }}
         >
-          <ambientLight intensity={0.5} />
+          <ambientLight intensity={1} />
           <spotLight
-            position={[-4, 4, -4]}
-            angle={0.06}
+            position={[0, 15, 0]}
+            angle={0.4}
             penumbra={1}
             castShadow
+            intensity={2}
             shadow-mapSize={[2048, 2048]}
           />
+          <pointLight position={[-5, 5, -5]} intensity={0.5} />
 
           <Suspense fallback={null}>
             {playing &&
@@ -159,7 +160,7 @@ export default function AudioAnalyzer() {
                   label={TRACKS[i].label}
                   muted={muted[i]}
                   onToggleMute={() => toggleMute(i)}
-                  position-z={TRACKS[i].z}
+                  position={[0, 0, TRACKS[i].z]}
                 />
               ))}
 
@@ -171,11 +172,17 @@ export default function AudioAnalyzer() {
           <mesh
             receiveShadow
             rotation={[-Math.PI / 2, 0, 0]}
-            position={[0, -0.025, 0]}
+            position={[0, -0.01, 0]}
           >
-            <planeGeometry args={[10, 10]} />
-            <shadowMaterial transparent opacity={0.15} />
+            <planeGeometry args={[50, 50]} />
+            <shadowMaterial transparent opacity={0.2} />
           </mesh>
+
+          <OrbitControls
+            maxPolarAngle={Math.PI / 2.5}
+            enableDamping
+            dampingFactor={0.04}
+          />
         </Canvas>
       </div>
     </>

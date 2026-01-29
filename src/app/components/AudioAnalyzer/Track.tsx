@@ -15,37 +15,13 @@ interface TrackProps {
 }
 
 const COLS = 32;
-const ROWS = 10;
-const DOT_SIZE = 0.006;
-const GAP_X = 0.009;
-const GAP_Y = 0.008;
-const BORDER = 0.15; // border thickness as fraction of dot
+const ROWS = 12;
+const BOX_SIZE = 0.1;
+const GUTTER = 0.02;
+const MAX_HEIGHT = 8;
+const COUNT = COLS * ROWS;
 
-const tempMatrix = new THREE.Matrix4();
-const tempScale = new THREE.Vector3();
-const tempColor = new THREE.Color();
-
-// Hollow square outline geometry (square with a square hole)
-function createOutlineGeometry() {
-  const s = 0.5;
-  const t = s - BORDER;
-  const shape = new THREE.Shape();
-  shape.moveTo(-s, -s);
-  shape.lineTo(s, -s);
-  shape.lineTo(s, s);
-  shape.lineTo(-s, s);
-  shape.closePath();
-
-  const hole = new THREE.Path();
-  hole.moveTo(-t, -t);
-  hole.lineTo(t, -t);
-  hole.lineTo(t, t);
-  hole.lineTo(-t, t);
-  hole.closePath();
-  shape.holes.push(hole);
-
-  return new THREE.ShapeGeometry(shape);
-}
+const tempObj = new THREE.Object3D();
 
 export default function Track({
   audioSource,
@@ -54,80 +30,85 @@ export default function Track({
   onToggleMute,
   ...props
 }: TrackProps) {
-  const litRef = useRef<THREE.InstancedMesh>(null);
-  const outlineRef = useRef<THREE.InstancedMesh>(null);
+  const ref = useRef<THREE.InstancedMesh>(null);
   const { update, data } = audioSource;
-  const count = COLS * ROWS;
 
-  const totalWidth = COLS * GAP_X;
-  const leftEdge = -totalWidth / 2;
-  const totalHeight = ROWS * GAP_Y;
+  const gridWidth = COLS * (BOX_SIZE + GUTTER);
+  const gridDepth = ROWS * (BOX_SIZE + GUTTER);
 
-  const outlineGeo = useMemo(() => createOutlineGeometry(), []);
+  const geometry = useMemo(() => {
+    const geo = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
+    geo.translate(0, BOX_SIZE / 2, 0);
+    return geo;
+  }, []);
 
+  const materials = useMemo(() => {
+    const topMat = new THREE.MeshPhysicalMaterial({
+      color: "#b7a500",
+      roughness: 0.4,
+    });
+    const sideMat = new THREE.MeshPhysicalMaterial({
+      color: "#380007",
+      roughness: 0.6,
+    });
+    const bottomMat = new THREE.MeshPhysicalMaterial({
+      color: "#03020a",
+      roughness: 0.8,
+    });
+    return [sideMat, sideMat, topMat, bottomMat, sideMat, sideMat];
+  }, []);
+
+  // Pre-compute XZ positions
   const positions = useMemo(() => {
     const pos: [number, number][] = [];
-    for (let col = 0; col < COLS; col++) {
-      for (let row = 0; row < ROWS; row++) {
-        pos.push([col * GAP_X + leftEdge, row * GAP_Y]);
+    const centerX = gridWidth / 2;
+    const centerZ = gridDepth / 2;
+
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) {
+        pos.push([
+          col * (BOX_SIZE + GUTTER) - centerX,
+          row * (BOX_SIZE + GUTTER) - centerZ,
+        ]);
       }
     }
     return pos;
-  }, [leftEdge]);
+  }, [gridWidth, gridDepth]);
 
-  // Set outline grid positions once
-  const outlineReady = useRef(false);
   useFrame(() => {
-    if (!litRef.current || !outlineRef.current) return;
-
-    // Initialize outline positions on first frame
-    if (!outlineReady.current) {
-      for (let i = 0; i < count; i++) {
-        const [x, y] = positions[i];
-        tempMatrix.identity();
-        tempMatrix.makeTranslation(x, y, 0);
-        tempMatrix.scale(new THREE.Vector3(DOT_SIZE, DOT_SIZE, 1));
-        outlineRef.current.setMatrixAt(i, tempMatrix);
-      }
-      outlineRef.current.instanceMatrix.needsUpdate = true;
-      outlineReady.current = true;
-    }
-
+    if (!ref.current) return;
     const avg = update();
 
-    for (let col = 0; col < COLS; col++) {
-      const magnitude = data[col] / 255;
-      const litRows = Math.floor(magnitude * ROWS);
+    // Update top material color based on avg frequency
+    const topMat = materials[2] as THREE.MeshPhysicalMaterial;
+    topMat.color.setHSL(avg / 500, 0.85, muted ? 0.2 : 0.55);
 
-      for (let row = 0; row < ROWS; row++) {
-        const idx = col * ROWS + row;
-        const [x, y] = positions[idx];
-        const lit = row < litRows;
+    const sideMat = materials[0] as THREE.MeshPhysicalMaterial;
+    sideMat.color.setHSL(avg / 500 + 0.05, 0.6, muted ? 0.1 : 0.25);
 
-        tempMatrix.identity();
-        tempMatrix.makeTranslation(x, y, 0);
-        tempScale.setScalar(lit ? 1 : 0);
-        tempMatrix.scale(tempScale);
-        litRef.current.setMatrixAt(idx, tempMatrix);
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) {
+        const idx = row * COLS + col;
+        const [x, z] = positions[idx];
+        const magnitude = data[col] / 255;
+        const yScale = Math.max(0.001, magnitude * MAX_HEIGHT);
 
-        if (lit) {
-          tempColor.setHSL(avg / 500, 0.75, muted ? 0.25 : 0.7);
-          litRef.current.setColorAt(idx, tempColor);
-        }
+        tempObj.position.set(x, 0, z);
+        tempObj.scale.set(1, muted ? 0.001 : yScale, 1);
+        tempObj.updateMatrix();
+
+        ref.current.setMatrixAt(idx, tempObj.matrix);
       }
     }
 
-    litRef.current.instanceMatrix.needsUpdate = true;
-    if (litRef.current.instanceColor) {
-      litRef.current.instanceColor.needsUpdate = true;
-    }
+    ref.current.instanceMatrix.needsUpdate = true;
   });
 
   return (
     <group {...props}>
       {/* Invisible hit area */}
       <mesh
-        position={[0, totalHeight / 2, 0]}
+        position={[0, 0.5, 0]}
         onClick={(e) => {
           e.stopPropagation();
           onToggleMute();
@@ -140,18 +121,18 @@ export default function Track({
           document.body.style.cursor = "default";
         }}
       >
-        <planeGeometry args={[totalWidth + 0.04, totalHeight + 0.02]} />
+        <boxGeometry args={[gridWidth + 0.2, 2, gridDepth + 0.2]} />
         <meshBasicMaterial visible={false} />
       </mesh>
 
       <Html
-        position={[leftEdge - 0.02, totalHeight / 2, 0]}
+        position={[-gridWidth / 2 - 0.15, 0, 0]}
         style={{ pointerEvents: "none" }}
       >
         <span
           style={{
             fontFamily: "monospace",
-            fontSize: "10px",
+            fontSize: "11px",
             color: muted ? "#666" : "#ccc",
             whiteSpace: "nowrap",
             userSelect: "none",
@@ -163,23 +144,12 @@ export default function Track({
         </span>
       </Html>
 
-      {/* Outline grid - always visible */}
       <instancedMesh
-        ref={outlineRef}
-        args={[outlineGeo, undefined, count]}
-      >
-        <meshBasicMaterial color="#444" toneMapped={false} />
-      </instancedMesh>
-
-      {/* Lit squares - on top */}
-      <instancedMesh
+        ref={ref}
+        args={[geometry, materials, COUNT]}
         castShadow
-        ref={litRef}
-        args={[undefined, undefined, count]}
-      >
-        <planeGeometry args={[DOT_SIZE, DOT_SIZE]} />
-        <meshBasicMaterial toneMapped={false} />
-      </instancedMesh>
+        receiveShadow
+      />
     </group>
   );
 }
