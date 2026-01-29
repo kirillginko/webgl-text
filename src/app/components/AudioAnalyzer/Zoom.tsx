@@ -14,7 +14,7 @@ export default function Zoom({ audioSource }: ZoomProps) {
   useFrame((state) => {
     update();
     const cam = state.camera as THREE.PerspectiveCamera;
-    cam.fov = 25 - data.avg / 15;
+    cam.fov = 22 - data.avg / 40;
     cam.updateProjectionMatrix();
   });
 

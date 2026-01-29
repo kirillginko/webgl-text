@@ -10,6 +10,7 @@ interface TrackProps {
   audioSource: AudioSource;
   label: string;
   muted: boolean;
+  baseHue: number;
   onToggleMute: () => void;
   [key: string]: unknown;
 }
@@ -20,17 +21,22 @@ const BOX_SIZE = 0.1;
 const GUTTER = 0.02;
 const MAX_HEIGHT = 8;
 const COUNT = COLS * ROWS;
+const ATTACK = 0.35;
+const DECAY = 0.06;
 
 const tempObj = new THREE.Object3D();
+const tempColor = new THREE.Color();
 
 export default function Track({
   audioSource,
   label,
   muted,
+  baseHue,
   onToggleMute,
   ...props
 }: TrackProps) {
   const ref = useRef<THREE.InstancedMesh>(null);
+  const smoothed = useRef<Float32Array | null>(null);
   const { update, data } = audioSource;
 
   const gridWidth = COLS * (BOX_SIZE + GUTTER);
@@ -42,21 +48,15 @@ export default function Track({
     return geo;
   }, []);
 
-  const materials = useMemo(() => {
-    const topMat = new THREE.MeshPhysicalMaterial({
-      color: "#b7a500",
-      roughness: 0.4,
-    });
-    const sideMat = new THREE.MeshPhysicalMaterial({
-      color: "#380007",
-      roughness: 0.6,
-    });
-    const bottomMat = new THREE.MeshPhysicalMaterial({
-      color: "#03020a",
-      roughness: 0.8,
-    });
-    return [sideMat, sideMat, topMat, bottomMat, sideMat, sideMat];
-  }, []);
+  const material = useMemo(
+    () =>
+      new THREE.MeshPhysicalMaterial({
+        roughness: 0.4,
+        metalness: 0.1,
+        toneMapped: false,
+      }),
+    []
+  );
 
   // Pre-compute XZ positions
   const positions = useMemo(() => {
@@ -77,31 +77,54 @@ export default function Track({
 
   useFrame(() => {
     if (!ref.current) return;
-    const avg = update();
+    update();
 
-    // Update top material color based on avg frequency
-    const topMat = materials[2] as THREE.MeshPhysicalMaterial;
-    topMat.color.setHSL(avg / 500, 0.85, muted ? 0.2 : 0.55);
+    // Lazy-init smoothed buffer
+    if (!smoothed.current) {
+      smoothed.current = new Float32Array(COLS);
+    }
+    const sm = smoothed.current;
 
-    const sideMat = materials[0] as THREE.MeshPhysicalMaterial;
-    sideMat.color.setHSL(avg / 500 + 0.05, 0.6, muted ? 0.1 : 0.25);
+    // Smooth each column: fast attack, slow decay
+    for (let col = 0; col < COLS; col++) {
+      const target = data[col] / 255;
+      const lerp = target > sm[col] ? ATTACK : DECAY;
+      sm[col] += (target - sm[col]) * lerp;
+    }
 
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
         const idx = row * COLS + col;
         const [x, z] = positions[idx];
-        const magnitude = data[col] / 255;
-        const yScale = Math.max(0.001, magnitude * MAX_HEIGHT);
+        const mag = sm[col];
+        const yScale = Math.max(0.001, mag * MAX_HEIGHT);
 
         tempObj.position.set(x, 0, z);
-        tempObj.scale.set(1, muted ? 0.001 : yScale, 1);
+        tempObj.scale.set(1, yScale, 1);
         tempObj.updateMatrix();
-
         ref.current.setMatrixAt(idx, tempObj.matrix);
+
+        // Per-instance color: height drives hue shift + HDR brightness for bloom
+        if (muted) {
+          const lit = 0.03 + mag * 0.12;
+          tempColor.setHSL(0, 0, lit);
+        } else {
+          const hue = baseHue + mag * 0.12;
+          const sat = 0.6 + mag * 0.3;
+          const lit = 0.05 + mag * 0.55;
+          tempColor.setHSL(hue, sat, lit);
+          // Aggressively push into HDR for strong bloom glow
+          const boost = 1 + mag * mag * 8;
+          tempColor.multiplyScalar(boost);
+        }
+        ref.current.setColorAt(idx, tempColor);
       }
     }
 
     ref.current.instanceMatrix.needsUpdate = true;
+    if (ref.current.instanceColor) {
+      ref.current.instanceColor.needsUpdate = true;
+    }
   });
 
   return (
@@ -146,7 +169,7 @@ export default function Track({
 
       <instancedMesh
         ref={ref}
-        args={[geometry, materials, COUNT]}
+        args={[geometry, material, COUNT]}
         castShadow
         receiveShadow
       />

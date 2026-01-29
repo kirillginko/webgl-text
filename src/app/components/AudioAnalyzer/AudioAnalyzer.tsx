@@ -3,20 +3,43 @@
 import { useRef, useState, useCallback, useEffect, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { createAudio, AudioSource } from "./createAudio";
 import Track from "./Track";
 import Zoom from "./Zoom";
 
 const TRACKS = [
-  { url: "/sounds/(Synth).wav", z: -2.5, label: "Synth" },
-  { url: "/sounds/(Bass).wav", z: 0, label: "Bass" },
-  { url: "/sounds/(Drums).wav", z: 2.5, label: "Drums" },
+  {
+    url: "/sounds/Meiso Ongaku 1 (Bass).m4a",
+    z: -3.75,
+    label: "Bass",
+    hue: 0.0,
+  },
+  {
+    url: "/sounds/Meiso Ongaku 1 (Drums).m4a",
+    z: -1.25,
+    label: "Drums",
+    hue: 0.28,
+  },
+  {
+    url: "/sounds/Meiso Ongaku 1 (Guitar).m4a",
+    z: 1.25,
+    label: "Guitar",
+    hue: 0.55,
+  },
+  {
+    url: "/sounds/Meiso Ongaku 1 (Woodwind).m4a",
+    z: 3.75,
+    label: "Woodwind",
+    hue: 0.78,
+  },
 ];
 
 export default function AudioAnalyzer() {
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [muted, setMuted] = useState<boolean[]>([false, false, false]);
+  const [muted, setMuted] = useState<boolean[]>([false, false, false, false]);
   const sourcesRef = useRef<AudioSource[]>([]);
   const contextRef = useRef<AudioContext | null>(null);
   const startingRef = useRef(false);
@@ -24,6 +47,7 @@ export default function AudioAnalyzer() {
   const startAudio = useCallback(async () => {
     if (contextRef.current || startingRef.current) return;
     startingRef.current = true;
+    setLoading(true);
 
     try {
       const ctx = new AudioContext();
@@ -31,14 +55,16 @@ export default function AudioAnalyzer() {
       await ctx.resume();
 
       const loaded = await Promise.all(
-        TRACKS.map((t) => createAudio(t.url, ctx))
+        TRACKS.map((t) => createAudio(t.url, ctx)),
       );
 
       loaded.forEach((s) => s.source.start(0));
       sourcesRef.current = loaded;
+      setLoading(false);
       setPlaying(true);
     } catch (e) {
       console.error("Audio failed:", e);
+      setLoading(false);
       startingRef.current = false;
       contextRef.current = null;
     }
@@ -119,7 +145,7 @@ export default function AudioAnalyzer() {
             textTransform: "uppercase",
           }}
         >
-          Click anywhere to start
+          {loading ? "Loading audio..." : "Click anywhere to start"}
         </div>
       )}
 
@@ -129,7 +155,7 @@ export default function AudioAnalyzer() {
           position: "fixed",
           inset: 0,
           zIndex: 1,
-          background: "#801336",
+          background: "#0a0a0a",
           cursor: !playing ? "pointer" : "default",
         }}
       >
@@ -140,16 +166,18 @@ export default function AudioAnalyzer() {
           gl={{ antialias: true, alpha: true }}
           style={{ background: "transparent" }}
         >
-          <ambientLight intensity={1} />
+          <ambientLight intensity={0.4} />
           <spotLight
             position={[0, 15, 0]}
             angle={0.4}
             penumbra={1}
             castShadow
-            intensity={2}
+            intensity={2.5}
             shadow-mapSize={[2048, 2048]}
+            color="#ffe0c0"
           />
-          <pointLight position={[-5, 5, -5]} intensity={0.5} />
+          <pointLight position={[-5, 5, -5]} intensity={0.6} color="#ffd4a8" />
+          <pointLight position={[5, 3, 5]} intensity={0.3} color="#ffccaa" />
 
           <Suspense fallback={null}>
             {playing &&
@@ -159,13 +187,14 @@ export default function AudioAnalyzer() {
                   audioSource={source}
                   label={TRACKS[i].label}
                   muted={muted[i]}
+                  baseHue={TRACKS[i].hue}
                   onToggleMute={() => toggleMute(i)}
                   position={[0, 0, TRACKS[i].z]}
                 />
               ))}
 
             {playing && sourcesRef.current.length > 0 && (
-              <Zoom audioSource={sourcesRef.current[2]} />
+              <Zoom audioSource={sourcesRef.current[3]} />
             )}
           </Suspense>
 
@@ -179,10 +208,22 @@ export default function AudioAnalyzer() {
           </mesh>
 
           <OrbitControls
+            autoRotate
+            autoRotateSpeed={2}
             maxPolarAngle={Math.PI / 2.5}
             enableDamping
             dampingFactor={0.04}
           />
+
+          <EffectComposer>
+            <Bloom
+              intensity={2.5}
+              luminanceThreshold={0.1}
+              luminanceSmoothing={0.7}
+              mipmapBlur
+              radius={0.85}
+            />
+          </EffectComposer>
         </Canvas>
       </div>
     </>
