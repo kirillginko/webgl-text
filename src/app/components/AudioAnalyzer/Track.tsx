@@ -28,7 +28,7 @@ const GRAVITY = 0.002;
 const BOUNCE = 0.6;
 const CELLS = COLS * DEPTH;
 
-const GRID_HEIGHT = 0.012; // thin slab for base grid
+const GRID_HEIGHT = 0.012;
 
 const tempObj = new THREE.Object3D();
 const tempColor = new THREE.Color();
@@ -62,7 +62,6 @@ export default function Track({
   const gridRef = useRef<THREE.InstancedMesh>(null);
   const gridInited = useRef(false);
   const smoothed = useRef<Float32Array | null>(null);
-  // Per-instance physics (COUNT = 3840)
   const cubeY = useRef<Float32Array | null>(null);
   const cubeVel = useRef<Float32Array | null>(null);
   const { update, raw } = audioSource;
@@ -72,7 +71,6 @@ export default function Track({
 
   const binMap = useMemo(() => buildBinMap(raw.length), [raw.length]);
 
-  // Per-instance random gravity jitter so cubes don't fall in lockstep
   const jitter = useMemo(() => {
     const j = new Float32Array(COUNT);
     for (let i = 0; i < COUNT; i++) {
@@ -81,19 +79,101 @@ export default function Track({
     return j;
   }, []);
 
-  const geometry = useMemo(() => {
-    return new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
+  // Persistent typed arrays for custom instance attributes
+  const emissiveArray = useMemo(() => new Float32Array(COUNT * 3), []);
+  const roughnessArray = useMemo(() => {
+    const a = new Float32Array(COUNT);
+    a.fill(0.5);
+    return a;
   }, []);
 
-  const material = useMemo(
-    () =>
-      new THREE.MeshPhysicalMaterial({
-        roughness: 0.4,
-        metalness: 0.1,
-        toneMapped: false,
-      }),
-    []
-  );
+  const geometry = useMemo(() => {
+    const geo = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
+    // Attach per-instance attributes up front so the shader compiler sees them
+    geo.setAttribute(
+      "aEmissive",
+      new THREE.InstancedBufferAttribute(emissiveArray, 3)
+    );
+    geo.setAttribute(
+      "aRoughness",
+      new THREE.InstancedBufferAttribute(roughnessArray, 1)
+    );
+    return geo;
+  }, [emissiveArray, roughnessArray]);
+
+  const material = useMemo(() => {
+    const mat = new THREE.MeshPhysicalMaterial({
+      roughness: 0.35,
+      metalness: 0.15,
+      toneMapped: false,
+      clearcoat: 0.7,
+      clearcoatRoughness: 0.12,
+    });
+
+    mat.onBeforeCompile = (shader) => {
+      // ── Vertex: declare custom attributes + pass to fragment ──
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <common>",
+        `#include <common>
+        attribute vec3 aEmissive;
+        attribute float aRoughness;
+        varying vec3 vEmissive;
+        varying float vInstanceRoughness;
+        varying vec3 vWorldPos;`
+      );
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <begin_vertex>",
+        `#include <begin_vertex>
+        vEmissive = aEmissive;
+        vInstanceRoughness = aRoughness;`
+      );
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <project_vertex>",
+        `vec4 _wp = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+          _wp = instanceMatrix * _wp;
+        #endif
+        _wp = modelMatrix * _wp;
+        vWorldPos = _wp.xyz;
+        #include <project_vertex>`
+      );
+
+      // ── Fragment: declare varyings ──
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <common>",
+        `#include <common>
+        varying vec3 vEmissive;
+        varying float vInstanceRoughness;
+        varying vec3 vWorldPos;`
+      );
+
+      // ── Override roughness with per-instance value ──
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <roughnessmap_fragment>",
+        `float roughnessFactor = vInstanceRoughness;`
+      );
+
+      // ── Add per-instance emissive ──
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+        totalEmissiveRadiance += vEmissive;`
+      );
+
+      // ── Fresnel rim glow ──
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <output_fragment>",
+        `vec3 _vd = normalize(cameraPosition - vWorldPos);
+        vec3 _wn = normalize(inverseTransformDirection(geometry.normal, viewMatrix));
+        float _fres = pow(1.0 - max(dot(_wn, _vd), 0.0), 3.0);
+        outgoingLight += vEmissive * _fres * 0.6;
+        #include <output_fragment>`
+      );
+    };
+
+    mat.customProgramCacheKey = () => "track-cube-v2";
+    return mat;
+  }, []);
 
   const gridGeometry = useMemo(() => {
     return new THREE.BoxGeometry(BOX_SIZE, GRID_HEIGHT, BOX_SIZE);
@@ -135,7 +215,7 @@ export default function Track({
 
     // Lazy-init buffers
     if (!smoothed.current) smoothed.current = new Float32Array(CELLS);
-    if (!cubeY.current) cubeY.current = new Float32Array(COUNT); // all start at 0 (hidden)
+    if (!cubeY.current) cubeY.current = new Float32Array(COUNT);
     if (!cubeVel.current) cubeVel.current = new Float32Array(COUNT);
 
     const sm = smoothed.current;
@@ -191,7 +271,7 @@ export default function Track({
       sm[i] += (target - sm[i]) * lerp;
     }
 
-    // Per-instance physics + rendering
+    // Per-instance physics + rendering + attribute updates
     for (let row = 0; row < DEPTH; row++) {
       const z = rowPositions[row];
       for (let level = 0; level < STACK; level++) {
@@ -201,9 +281,10 @@ export default function Track({
           const x = colPositions[col];
           const homeY = level * STEP;
           const activeLevel = Math.floor(sm[cellIdx] * STACK);
+          const t = level / STACK;
 
           if (level < activeLevel) {
-            // Audio is holding this cube — snap to grid position
+            // Audio is holding this cube
             cy[idx] = homeY;
             cv[idx] = 0;
 
@@ -211,25 +292,36 @@ export default function Track({
             tempObj.scale.set(1, 1, 1);
 
             if (muted) {
-              const lit = 0.03 + (level / STACK) * 0.12;
+              const lit = 0.03 + t * 0.12;
               tempColor.setHSL(0, 0, lit);
+              // Dim emissive for muted
+              emissiveArray[idx * 3] = 0;
+              emissiveArray[idx * 3 + 1] = 0;
+              emissiveArray[idx * 3 + 2] = 0;
+              roughnessArray[idx] = 0.5;
             } else {
-              const t = level / STACK;
               const hue = baseHue + t * 0.1;
               const sat = 0.6 + t * 0.3;
               const lit = 0.08 + t * 0.5;
               tempColor.setHSL(hue, sat, lit);
               const boost = 1 + t * t * 8;
               tempColor.multiplyScalar(boost);
+
+              // Per-instance emissive: ramps with height
+              const emStr = t * t * 2.5;
+              emissiveArray[idx * 3] = tempColor.r * emStr;
+              emissiveArray[idx * 3 + 1] = tempColor.g * emStr;
+              emissiveArray[idx * 3 + 2] = tempColor.b * emStr;
+
+              // Per-instance roughness: top = glossy, bottom = matte
+              roughnessArray[idx] = 0.55 - t * 0.5;
             }
           } else {
             // Cube is free — individual physics
             if (cy[idx] > 0 || cv[idx] !== 0) {
-              // Apply gravity with per-instance jitter
               cv[idx] -= GRAVITY + jitter[idx];
               cy[idx] += cv[idx];
 
-              // Bounce off the floor
               if (cy[idx] <= 0) {
                 cy[idx] = 0;
                 if (cv[idx] < -0.004) {
@@ -241,27 +333,39 @@ export default function Track({
             }
 
             if (cy[idx] <= 0 && cv[idx] === 0) {
-              // Settled on floor — hide
+              // Settled — hide
               tempObj.position.set(x, 0, z);
               tempObj.scale.set(0, 0, 0);
               tempColor.setRGB(0, 0, 0);
+              emissiveArray[idx * 3] = 0;
+              emissiveArray[idx * 3 + 1] = 0;
+              emissiveArray[idx * 3 + 2] = 0;
+              roughnessArray[idx] = 0.5;
             } else {
-              // Falling / bouncing — visible at current Y
+              // Falling / bouncing
               tempObj.position.set(x, cy[idx], z);
               tempObj.scale.set(1, 1, 1);
 
               if (muted) {
                 tempColor.setHSL(0, 0, 0.08);
+                emissiveArray[idx * 3] = 0;
+                emissiveArray[idx * 3 + 1] = 0;
+                emissiveArray[idx * 3 + 2] = 0;
               } else {
-                // Keep color based on original stack level
-                const t = level / STACK;
                 const hue = baseHue + t * 0.1;
                 const sat = 0.5 + t * 0.2;
                 const lit = 0.06 + t * 0.4;
                 tempColor.setHSL(hue, sat, lit);
                 const boost = 1 + t * t * 6;
                 tempColor.multiplyScalar(boost);
+
+                // Dimmer emissive while falling
+                const emStr = t * t * 1.2;
+                emissiveArray[idx * 3] = tempColor.r * emStr;
+                emissiveArray[idx * 3 + 1] = tempColor.g * emStr;
+                emissiveArray[idx * 3 + 2] = tempColor.b * emStr;
               }
+              roughnessArray[idx] = 0.55 - t * 0.5;
             }
           }
 
@@ -272,10 +376,19 @@ export default function Track({
       }
     }
 
+    // Flag all buffers for GPU upload
     ref.current.instanceMatrix.needsUpdate = true;
     if (ref.current.instanceColor) {
       ref.current.instanceColor.needsUpdate = true;
     }
+    const emAttr = ref.current.geometry.getAttribute(
+      "aEmissive"
+    ) as THREE.InstancedBufferAttribute;
+    const roughAttr = ref.current.geometry.getAttribute(
+      "aRoughness"
+    ) as THREE.InstancedBufferAttribute;
+    if (emAttr) emAttr.needsUpdate = true;
+    if (roughAttr) roughAttr.needsUpdate = true;
   });
 
   return (
