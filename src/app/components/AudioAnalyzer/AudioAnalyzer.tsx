@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect, Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, SoftShadows } from "@react-three/drei";
+import * as THREE from "three";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { createAudio, AudioSource } from "./createAudio";
 import Track from "./Track";
@@ -34,6 +35,55 @@ const TRACKS = [
     hue: 0.78,
   },
 ];
+
+// Rim lights pulse on alternating eighth notes
+const BPM = 99;
+const EIGHTH = (60 / BPM) / 2;
+const RIM_DIM = 1.2;
+const RIM_FLASH = 10.0;
+const FLASH_SHARPNESS = 10;
+
+function PulseRimLights({ source }: { source: AudioSource }) {
+  const blueRef = useRef<THREE.PointLight>(null);
+  const warmRef = useRef<THREE.PointLight>(null);
+
+  useFrame(() => {
+    const t = source.context.currentTime;
+    const eighthFrac = (t / EIGHTH) % 2; // 0→2 over two eighths
+    const idx = Math.floor(eighthFrac); // 0 or 1
+    const phase = eighthFrac - idx; // 0→1 within the eighth
+    const envelope = Math.exp(-phase * FLASH_SHARPNESS);
+
+    // Alternate: blue on even eighths, warm on odd eighths
+    if (blueRef.current) {
+      blueRef.current.intensity = RIM_DIM + envelope * RIM_FLASH * (idx === 0 ? 1 : 0);
+    }
+    if (warmRef.current) {
+      warmRef.current.intensity = RIM_DIM + envelope * RIM_FLASH * (idx === 1 ? 1 : 0);
+    }
+  });
+
+  return (
+    <>
+      <pointLight
+        ref={blueRef}
+        position={[-8, 6, -10]}
+        color="#4488ff"
+        intensity={RIM_DIM}
+        distance={40}
+        decay={1.8}
+      />
+      <pointLight
+        ref={warmRef}
+        position={[8, 4, -8]}
+        color="#ff8844"
+        intensity={RIM_DIM}
+        distance={35}
+        decay={1.8}
+      />
+    </>
+  );
+}
 
 export default function AudioAnalyzer() {
   const [playing, setPlaying] = useState(false);
@@ -166,18 +216,51 @@ export default function AudioAnalyzer() {
           gl={{ antialias: true, alpha: true }}
           style={{ background: "transparent" }}
         >
-          <ambientLight intensity={0.4} />
-          <spotLight
-            position={[0, 15, 0]}
-            angle={0.4}
-            penumbra={1}
+          <SoftShadows size={25} samples={16} focus={0.5} />
+
+          {/* Fill: hemisphere + ambient */}
+          <hemisphereLight args={["#b1c5ff", "#2a1a0a", 0.3]} />
+          <ambientLight intensity={0.15} />
+
+          {/* Key: soft directional from above-front */}
+          <directionalLight
+            position={[5, 12, 8]}
+            intensity={2.0}
+            color="#ffe4cc"
             castShadow
-            intensity={2.5}
             shadow-mapSize={[2048, 2048]}
-            color="#ffe0c0"
+            shadow-bias={-0.0004}
+            shadow-normalBias={0.02}
+            shadow-camera-left={-10}
+            shadow-camera-right={10}
+            shadow-camera-top={10}
+            shadow-camera-bottom={-10}
+            shadow-camera-near={1}
+            shadow-camera-far={30}
+            shadow-radius={4}
           />
-          <pointLight position={[-5, 5, -5]} intensity={0.6} color="#ffd4a8" />
-          <pointLight position={[5, 3, 5]} intensity={0.3} color="#ffccaa" />
+
+          {/* Rhythmic rim lights — alternate on quarter notes */}
+          {playing && sourcesRef.current.length > 1 ? (
+            <PulseRimLights source={sourcesRef.current[1]} />
+          ) : (
+            <>
+              <pointLight
+                position={[-8, 6, -10]}
+                color="#4488ff"
+                intensity={RIM_DIM}
+                distance={40}
+                decay={1.8}
+              />
+              <pointLight
+                position={[8, 4, -8]}
+                color="#ff8844"
+                intensity={RIM_DIM}
+                distance={35}
+                decay={1.8}
+              />
+            </>
+          )}
 
           <Suspense fallback={null}>
             {playing &&
@@ -188,6 +271,7 @@ export default function AudioAnalyzer() {
                   label={TRACKS[i].label}
                   muted={muted[i]}
                   baseHue={TRACKS[i].hue}
+                  trackIndex={i}
                   onToggleMute={() => toggleMute(i)}
                   position={[0, 0, TRACKS[i].z]}
                 />
@@ -204,7 +288,7 @@ export default function AudioAnalyzer() {
             position={[0, -0.01, 0]}
           >
             <planeGeometry args={[50, 50]} />
-            <shadowMaterial transparent opacity={0.2} />
+            <shadowMaterial transparent opacity={0.35} />
           </mesh>
 
           <OrbitControls

@@ -11,6 +11,7 @@ interface TrackProps {
   label: string;
   muted: boolean;
   baseHue: number;
+  trackIndex: number;
   onToggleMute: () => void;
   [key: string]: unknown;
 }
@@ -29,6 +30,15 @@ const BOUNCE = 0.6;
 const CELLS = COLS * DEPTH;
 
 const GRID_HEIGHT = 0.012;
+
+// Sweep: one analyzer per measure, cycling through tracks
+const BPM = 99;
+const NUM_TRACKS = 4;
+const BEATS_PER_BAR = 4;
+const BAR_TIME = (60 / BPM) * BEATS_PER_BAR; // one measure
+const FULL_CYCLE = BAR_TIME * NUM_TRACKS; // 4 measures to cycle all tracks
+const SWEEP_WIDTH = 3;
+const SWEEP_BOOST = 2.5;
 
 const tempObj = new THREE.Object3D();
 const tempColor = new THREE.Color();
@@ -55,6 +65,7 @@ export default function Track({
   label,
   muted,
   baseHue,
+  trackIndex,
   onToggleMute,
   ...props
 }: TrackProps) {
@@ -92,11 +103,11 @@ export default function Track({
     // Attach per-instance attributes up front so the shader compiler sees them
     geo.setAttribute(
       "aEmissive",
-      new THREE.InstancedBufferAttribute(emissiveArray, 3)
+      new THREE.InstancedBufferAttribute(emissiveArray, 3),
     );
     geo.setAttribute(
       "aRoughness",
-      new THREE.InstancedBufferAttribute(roughnessArray, 1)
+      new THREE.InstancedBufferAttribute(roughnessArray, 1),
     );
     return geo;
   }, [emissiveArray, roughnessArray]);
@@ -119,13 +130,13 @@ export default function Track({
         attribute float aRoughness;
         varying vec3 vEmissive;
         varying float vInstanceRoughness;
-        varying vec3 vWorldPos;`
+        varying vec3 vWorldPos;`,
       );
       shader.vertexShader = shader.vertexShader.replace(
         "#include <begin_vertex>",
         `#include <begin_vertex>
         vEmissive = aEmissive;
-        vInstanceRoughness = aRoughness;`
+        vInstanceRoughness = aRoughness;`,
       );
       shader.vertexShader = shader.vertexShader.replace(
         "#include <project_vertex>",
@@ -135,7 +146,7 @@ export default function Track({
         #endif
         _wp = modelMatrix * _wp;
         vWorldPos = _wp.xyz;
-        #include <project_vertex>`
+        #include <project_vertex>`,
       );
 
       // ── Fragment: declare varyings ──
@@ -144,20 +155,20 @@ export default function Track({
         `#include <common>
         varying vec3 vEmissive;
         varying float vInstanceRoughness;
-        varying vec3 vWorldPos;`
+        varying vec3 vWorldPos;`,
       );
 
       // ── Override roughness with per-instance value ──
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <roughnessmap_fragment>",
-        `float roughnessFactor = vInstanceRoughness;`
+        `float roughnessFactor = vInstanceRoughness;`,
       );
 
       // ── Add per-instance emissive ──
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <emissivemap_fragment>",
         `#include <emissivemap_fragment>
-        totalEmissiveRadiance += vEmissive;`
+        totalEmissiveRadiance += vEmissive;`,
       );
 
       // ── Fresnel rim glow ──
@@ -167,7 +178,7 @@ export default function Track({
         vec3 _wn = normalize(inverseTransformDirection(geometry.normal, viewMatrix));
         float _fres = pow(1.0 - max(dot(_wn, _vd), 0.0), 3.0);
         outgoingLight += vEmissive * _fres * 0.6;
-        #include <output_fragment>`
+        #include <output_fragment>`,
       );
     };
 
@@ -188,7 +199,7 @@ export default function Track({
         transparent: true,
         opacity: 0.35,
       }),
-    []
+    [],
   );
 
   const colPositions = useMemo(() => {
@@ -249,26 +260,43 @@ export default function Track({
       }
     }
 
-    // Update grid colors when mute state changes
-    if (gridRef.current) {
-      for (let i = 0; i < CELLS; i++) {
-        if (muted) {
-          tempColor.setHSL(0, 0, 0.04);
-        } else {
-          tempColor.setHSL(baseHue, 0.3, 0.04);
-        }
-        gridRef.current.setColorAt(i, tempColor);
-      }
-      if (gridRef.current.instanceColor) {
-        gridRef.current.instanceColor.needsUpdate = true;
-      }
-    }
-
     // Smooth each (col, row) cell independently
     for (let i = 0; i < CELLS; i++) {
       const target = raw[binMap[i]] / 255;
       const lerp = target > sm[i] ? ATTACK : DECAY;
       sm[i] += (target - sm[i]) * lerp;
+    }
+
+    // Sweep cursor: one full measure per track, cycling every 4 measures
+    const cycleTime = audioSource.context.currentTime % FULL_CYCLE;
+    const activeTrack = Math.floor(cycleTime / BAR_TIME);
+    const barProgress = (cycleTime - activeTrack * BAR_TIME) / BAR_TIME; // 0→1
+    const sweepCol =
+      activeTrack === trackIndex ? barProgress * COLS : -100;
+
+    // Update grid colors with sweep
+    if (gridRef.current) {
+      for (let row = 0; row < DEPTH; row++) {
+        for (let col = 0; col < COLS; col++) {
+          const i = row * COLS + col;
+          const dist = Math.abs(col - sweepCol);
+          const sweepFactor = Math.max(0, 1 - dist / SWEEP_WIDTH);
+          if (muted) {
+            tempColor.setHSL(0, 0, 0.04 + sweepFactor * 0.08);
+          } else {
+            const lit = 0.04 + sweepFactor * 0.15;
+            const sat = 0.3 + sweepFactor * 0.4;
+            tempColor.setHSL(baseHue, sat, lit);
+            if (sweepFactor > 0) {
+              tempColor.multiplyScalar(1 + sweepFactor * 1.5);
+            }
+          }
+          gridRef.current.setColorAt(i, tempColor);
+        }
+      }
+      if (gridRef.current.instanceColor) {
+        gridRef.current.instanceColor.needsUpdate = true;
+      }
     }
 
     // Per-instance physics + rendering + attribute updates
@@ -282,6 +310,11 @@ export default function Track({
           const homeY = level * STEP;
           const activeLevel = Math.floor(sm[cellIdx] * STACK);
           const t = level / STACK;
+
+          // Sweep: boost columns near the cursor
+          const sweepDist = Math.abs(col - sweepCol);
+          const sweepFactor = Math.max(0, 1 - sweepDist / SWEEP_WIDTH);
+          const sweepMul = 1 + sweepFactor * sweepFactor * (SWEEP_BOOST - 1);
 
           if (level < activeLevel) {
             // Audio is holding this cube
@@ -300,15 +333,15 @@ export default function Track({
               emissiveArray[idx * 3 + 2] = 0;
               roughnessArray[idx] = 0.5;
             } else {
-              const hue = baseHue + t * 0.1;
-              const sat = 0.6 + t * 0.3;
-              const lit = 0.08 + t * 0.5;
+              const hue = baseHue + t * 0.08;
+              const sat = 0.35 + t * 0.2;
+              const lit = 0.03 + t * 0.35;
               tempColor.setHSL(hue, sat, lit);
-              const boost = 1 + t * t * 8;
-              tempColor.multiplyScalar(boost);
+              const boost = 1 + t * t * 3;
+              tempColor.multiplyScalar(boost * sweepMul);
 
-              // Per-instance emissive: ramps with height
-              const emStr = t * t * 2.5;
+              // Per-instance emissive: gentle ramp with height + sweep
+              const emStr = t * t * 0.8 + sweepFactor * 0.5;
               emissiveArray[idx * 3] = tempColor.r * emStr;
               emissiveArray[idx * 3 + 1] = tempColor.g * emStr;
               emissiveArray[idx * 3 + 2] = tempColor.b * emStr;
@@ -352,15 +385,15 @@ export default function Track({
                 emissiveArray[idx * 3 + 1] = 0;
                 emissiveArray[idx * 3 + 2] = 0;
               } else {
-                const hue = baseHue + t * 0.1;
-                const sat = 0.5 + t * 0.2;
-                const lit = 0.06 + t * 0.4;
+                const hue = baseHue + t * 0.08;
+                const sat = 0.3 + t * 0.15;
+                const lit = 0.03 + t * 0.3;
                 tempColor.setHSL(hue, sat, lit);
-                const boost = 1 + t * t * 6;
-                tempColor.multiplyScalar(boost);
+                const boost = 1 + t * t * 2;
+                tempColor.multiplyScalar(boost * sweepMul);
 
-                // Dimmer emissive while falling
-                const emStr = t * t * 1.2;
+                // Subtle emissive while falling + sweep
+                const emStr = t * t * 0.4 + sweepFactor * 0.3;
                 emissiveArray[idx * 3] = tempColor.r * emStr;
                 emissiveArray[idx * 3 + 1] = tempColor.g * emStr;
                 emissiveArray[idx * 3 + 2] = tempColor.b * emStr;
@@ -382,10 +415,10 @@ export default function Track({
       ref.current.instanceColor.needsUpdate = true;
     }
     const emAttr = ref.current.geometry.getAttribute(
-      "aEmissive"
+      "aEmissive",
     ) as THREE.InstancedBufferAttribute;
     const roughAttr = ref.current.geometry.getAttribute(
-      "aRoughness"
+      "aRoughness",
     ) as THREE.InstancedBufferAttribute;
     if (emAttr) emAttr.needsUpdate = true;
     if (roughAttr) roughAttr.needsUpdate = true;
@@ -431,10 +464,7 @@ export default function Track({
         </span>
       </Html>
 
-      <instancedMesh
-        ref={gridRef}
-        args={[gridGeometry, gridMaterial, CELLS]}
-      />
+      <instancedMesh ref={gridRef} args={[gridGeometry, gridMaterial, CELLS]} />
 
       <instancedMesh
         ref={ref}
