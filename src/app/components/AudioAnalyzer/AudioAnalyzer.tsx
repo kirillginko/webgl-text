@@ -37,18 +37,24 @@ const TRACKS = [
 ];
 
 // Rim lights pulse on alternating eighth notes
-const BPM = 99;
-const EIGHTH = (60 / BPM) / 2;
+const BPM = 103;
+const EIGHTH = 60 / BPM / 2;
 const RIM_DIM = 1.2;
 const RIM_FLASH = 10.0;
 const FLASH_SHARPNESS = 10;
 
-function PulseRimLights({ source }: { source: AudioSource }) {
+function PulseRimLights({
+  source,
+  startTime,
+}: {
+  source: AudioSource;
+  startTime: number;
+}) {
   const blueRef = useRef<THREE.PointLight>(null);
   const warmRef = useRef<THREE.PointLight>(null);
 
   useFrame(() => {
-    const t = source.context.currentTime;
+    const t = source.context.currentTime - startTime;
     const eighthFrac = (t / EIGHTH) % 2; // 0→2 over two eighths
     const idx = Math.floor(eighthFrac); // 0 or 1
     const phase = eighthFrac - idx; // 0→1 within the eighth
@@ -56,10 +62,12 @@ function PulseRimLights({ source }: { source: AudioSource }) {
 
     // Alternate: blue on even eighths, warm on odd eighths
     if (blueRef.current) {
-      blueRef.current.intensity = RIM_DIM + envelope * RIM_FLASH * (idx === 0 ? 1 : 0);
+      blueRef.current.intensity =
+        RIM_DIM + envelope * RIM_FLASH * (idx === 0 ? 1 : 0);
     }
     if (warmRef.current) {
-      warmRef.current.intensity = RIM_DIM + envelope * RIM_FLASH * (idx === 1 ? 1 : 0);
+      warmRef.current.intensity =
+        RIM_DIM + envelope * RIM_FLASH * (idx === 1 ? 1 : 0);
     }
   });
 
@@ -93,6 +101,7 @@ export default function AudioAnalyzer() {
   const sourcesRef = useRef<AudioSource[]>([]);
   const contextRef = useRef<AudioContext | null>(null);
   const startingRef = useRef(false);
+  const audioStartTimeRef = useRef(0);
 
   const startAudio = useCallback(async () => {
     if (contextRef.current || startingRef.current) return;
@@ -109,6 +118,7 @@ export default function AudioAnalyzer() {
       );
 
       loaded.forEach((s) => s.source.start(0));
+      audioStartTimeRef.current = ctx.currentTime;
       sourcesRef.current = loaded;
       setLoading(false);
       setPlaying(true);
@@ -242,7 +252,10 @@ export default function AudioAnalyzer() {
 
           {/* Rhythmic rim lights — alternate on quarter notes */}
           {playing && sourcesRef.current.length > 1 ? (
-            <PulseRimLights source={sourcesRef.current[1]} />
+            <PulseRimLights
+              source={sourcesRef.current[1]}
+              startTime={audioStartTimeRef.current}
+            />
           ) : (
             <>
               <pointLight
@@ -272,6 +285,7 @@ export default function AudioAnalyzer() {
                   muted={muted[i]}
                   baseHue={TRACKS[i].hue}
                   trackIndex={i}
+                  startTime={audioStartTimeRef.current}
                   onToggleMute={() => toggleMute(i)}
                   position={[0, 0, TRACKS[i].z]}
                 />
@@ -293,7 +307,7 @@ export default function AudioAnalyzer() {
 
           <OrbitControls
             autoRotate
-            autoRotateSpeed={2}
+            //  
             maxPolarAngle={Math.PI / 2.5}
             enableDamping
             dampingFactor={0.04}

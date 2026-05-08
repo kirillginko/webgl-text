@@ -12,6 +12,7 @@ interface TrackProps {
   muted: boolean;
   baseHue: number;
   trackIndex: number;
+  startTime: number;
   onToggleMute: () => void;
   [key: string]: unknown;
 }
@@ -32,7 +33,7 @@ const CELLS = COLS * DEPTH;
 const GRID_HEIGHT = 0.012;
 
 // Sweep: one analyzer per measure, cycling through tracks
-const BPM = 99;
+const BPM = 103;
 const NUM_TRACKS = 4;
 const BEATS_PER_BAR = 4;
 const BAR_TIME = (60 / BPM) * BEATS_PER_BAR; // one measure
@@ -66,6 +67,7 @@ export default function Track({
   muted,
   baseHue,
   trackIndex,
+  startTime,
   onToggleMute,
   ...props
 }: TrackProps) {
@@ -267,12 +269,10 @@ export default function Track({
       sm[i] += (target - sm[i]) * lerp;
     }
 
-    // Sweep cursor: one full measure per track, cycling every 4 measures
-    const cycleTime = audioSource.context.currentTime % FULL_CYCLE;
-    const activeTrack = Math.floor(cycleTime / BAR_TIME);
-    const barProgress = (cycleTime - activeTrack * BAR_TIME) / BAR_TIME; // 0→1
-    const sweepCol =
-      activeTrack === trackIndex ? barProgress * COLS : -100;
+    // TEST: sweep only on Drums (trackIndex 1), repeating every bar
+    const elapsed = audioSource.context.currentTime - startTime;
+    const barProgress = (elapsed % BAR_TIME) / BAR_TIME; // 0→1 each bar
+    const sweepCol = trackIndex === 1 ? barProgress * COLS : -100;
 
     // Update grid colors with sweep
     if (gridRef.current) {
