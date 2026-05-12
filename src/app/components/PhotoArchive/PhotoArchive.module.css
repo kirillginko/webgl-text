@@ -1,0 +1,450 @@
+.container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #e8e8e8;
+}
+
+.canvas {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── Date / time ──────────────────────────────────── */
+.dateTime {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #333;
+  letter-spacing: 0.01em;
+}
+
+/* ── "every : second" ─────────────────────────────── */
+.subtitle {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  color: #555;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* ── Category list ────────────────────────────────── */
+.categories {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.catBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  color: #aaa;
+  text-align: right;
+  padding: 1px 0;
+  transition: color 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.catBtn:hover {
+  color: #333;
+}
+
+.catActive {
+  color: #222 !important;
+}
+
+.count {
+  font-size: 8px;
+  vertical-align: super;
+  margin-left: 2px;
+  color: inherit;
+}
+
+/* ── Bottom-right toolbar ─────────────────────────── */
+.toolbar {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  transition: color 0.15s;
+}
+
+.toolBtn:hover {
+  color: #333;
+}
+
+/* ── Photo overlay — straight-ahead 2D selected view ─ */
+.photoOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.photoFrame {
+  width: min(680px, 68vw);
+  aspect-ratio: 3 / 2;
+}
+
+.photoMeta {
+  width: min(680px, 68vw);
+  margin-top: 14px;
+  padding-left: 18px;
+  border-left: 2px solid #aaa;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  color: #333;
+  letter-spacing: 0.01em;
+}
+
+.metaTime {
+  color: #888;
+  font-size: 10px;
+}
+
+.metaLocation {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.metaCredit {
+  color: #555;
+  font-size: 10px;
+}
+
+.metaActions {
+  display: flex;
+  gap: 18px;
+  margin-top: 5px;
+}
+
+.metaBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 10px;
+  color: #888;
+  padding: 0;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s;
+}
+
+.metaBtn:hover {
+  color: #222;
+}
+
+/* ── Selected album metadata panel (below the 3-D card) ── */
+.selectedMeta {
+  position: absolute;
+  bottom: 13%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding-left: 18px;
+  border-left: 2px solid #aaa;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  color: #333;
+  letter-spacing: 0.01em;
+  animation: fadeIn 0.3s ease;
+  white-space: nowrap;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.metaTime {
+  color: #888;
+  font-size: 10px;
+}
+
+.metaLocation {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.metaCredit {
+  color: #555;
+  font-size: 10px;
+}
+
+.metaDate {
+  color: #999;
+  font-size: 9px;
+}
+
+/* ── Zoom slider — left centre ────────────────────── */
+.zoomSlider {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoomLabel {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+  color: #bbb;
+  line-height: 1;
+  user-select: none;
+}
+
+/* The track wrapper defines the visual height of the slider */
+.zoomTrack {
+  position: relative;
+  width: 14px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoomRange {
+  position: absolute;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 140px;            /* becomes visual height when rotated */
+  height: 1px;
+  background: #ccc;
+  outline: none;
+  border: none;
+  cursor: pointer;
+  transform: rotate(-90deg);
+  margin: 0;
+  padding: 0;
+}
+
+.zoomRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #444;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.zoomRange::-webkit-slider-thumb:hover {
+  background: #111;
+  transform: scale(1.4);
+}
+
+.zoomRange::-moz-range-thumb {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #444;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.zoomRange::-moz-range-thumb:hover {
+  background: #111;
+  transform: scale(1.4);
+}
+
+.zoomRange::-webkit-slider-runnable-track {
+  height: 1px;
+  background: #ccc;
+}
+
+.zoomRange::-moz-range-track {
+  height: 1px;
+  background: #ccc;
+}
+
+.zoomRange::-moz-range-progress {
+  height: 1px;
+  background: #888;
+}
+
+/* ── Loading / count badges ────────────────────────── */
+.loadingBadge,
+.countBadge {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 10;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 10px;
+  color: #999;
+  letter-spacing: 0.04em;
+}
+
+.loadingBadge {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1;   }
+}
+
+/* ── Scrubber ──────────────────────────────────────── */
+.scrubber {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* stay clear of the badge (left) and toolbar (right) */
+  width: min(480px, 54vw);
+}
+
+.scrubberLabel {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 10px;
+  color: #999;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.scrubberHint {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 9px;
+  color: #bbb;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.scrubberTrack {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* ── range input — fully custom, matches the editorial look ── */
+.scrubberRange {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 1px;
+  background: #ccc;
+  outline: none;
+  border: none;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+}
+
+/* Thumb — webkit */
+.scrubberRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #444;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.scrubberRange::-webkit-slider-thumb:hover {
+  background: #111;
+  transform: scale(1.4);
+}
+
+/* Thumb — moz */
+.scrubberRange::-moz-range-thumb {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #444;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.scrubberRange::-moz-range-thumb:hover {
+  background: #111;
+  transform: scale(1.4);
+}
+
+/* Track — webkit fill left of thumb */
+.scrubberRange::-webkit-slider-runnable-track {
+  height: 1px;
+  background: #ccc;
+  border: none;
+}
+
+/* Track — moz */
+.scrubberRange::-moz-range-track {
+  height: 1px;
+  background: #ccc;
+  border: none;
+}
+
+.scrubberRange::-moz-range-progress {
+  height: 1px;
+  background: #888;
+}

@@ -1,7 +1,20 @@
-"use client";
+// Server component — reads local JSON at render time, zero client-side fetches.
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
+import PhotoArchive from "./components/PhotoArchive/PhotoArchive";
+import type { WarpRelease } from "./types/warp";
 
-import TabletVideoDebug from "./components/TabletVideo/TabletVideoDebug";
+function loadReleases(): WarpRelease[] {
+  const file = join(process.cwd(), "src", "app", "data", "warp-releases.json");
+  if (!existsSync(file)) return [];
+  try {
+    return JSON.parse(readFileSync(file, "utf-8")) as WarpRelease[];
+  } catch {
+    return [];
+  }
+}
 
 export default function Home() {
-  return <TabletVideoDebug videoSrc="/willow.mp4" targetMeshId={43} />;
+  const releases = loadReleases();
+  return <PhotoArchive initialReleases={releases} />;
 }
