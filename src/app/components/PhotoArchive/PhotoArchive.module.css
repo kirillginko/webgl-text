@@ -57,7 +57,6 @@
   gap: 1px;
   max-height: calc(100vh - 36px);
   overflow-y: auto;
-  /* hide scrollbar visually but keep it functional */
   scrollbar-width: none;
 }
 
@@ -71,19 +70,40 @@
   cursor: pointer;
   font-family: "Courier New", Courier, monospace;
   font-size: 11px;
-  color: #aaa;
-  text-align: right;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   padding: 1px 0;
   transition: color 0.15s;
   letter-spacing: 0.01em;
 }
 
-.catBtn:hover {
-  color: #333;
+.catBtn:hover .catLabel {
+  background-color: color-mix(in srgb, var(--cat-color) 35%, transparent);
 }
 
-.catActive {
-  color: #222 !important;
+.catActive .catLabel {
+  background-color: color-mix(in srgb, var(--cat-color) 50%, transparent);
+  font-weight: bold;
+  color: #111;
+}
+
+.catDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--cat-color);
+  flex-shrink: 0;
+  order: 1;
+}
+
+.catLabel {
+  order: 0;
+  padding: 0 3px;
+  background-color: color-mix(in srgb, var(--cat-color) 18%, transparent);
+  transition: background-color 0.15s;
+  line-height: 1.5;
 }
 
 .count {
@@ -91,6 +111,7 @@
   vertical-align: super;
   margin-left: 2px;
   color: inherit;
+  opacity: 0.7;
 }
 
 /* ── Bottom-right toolbar ─────────────────────────── */
