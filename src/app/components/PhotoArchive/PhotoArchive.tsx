@@ -742,16 +742,17 @@ function Scene({
 }
 
 // ── Artist list color palette ─────────────────────────────────────────────────
-// Colors matched to the reference image — vivid editorial highlighter palette
 const ARTIST_PALETTE = [
-  "#FF3CAC", "#FF6B00", "#FFE600", "#00E676", "#00B0FF",
-  "#D500F9", "#FF1744", "#00E5FF", "#FF9100", "#76FF03",
-  "#F50057", "#00BFA5", "#FFEA00", "#AA00FF", "#FF6D00",
-  "#18FFFF", "#C6FF00", "#FF4081", "#00E5FF", "#69F0AE",
+  "#948EFF", "#A8C5E6", "#FAFAFA", "#FFF200", "#EAFF00",
+  "#DD5C1C", "#F03819", "#948EFF", "#20DE86", "#FDCEEB",
+  "#C7F3C6", "#EBE6E3",
 ];
 
 // Varied highlight widths — gives the hand-drawn marker feel
 const HIGHLIGHT_WIDTHS = [55, 72, 40, 88, 62, 45, 78, 52, 93, 67, 38, 83, 58, 71, 44, 86, 60, 47, 76, 64];
+
+// Alternating dot shapes — 50% = circle, 0% = square
+const DOT_RADII = ["50%", "0%", "50%", "50%", "0%", "50%", "0%", "50%", "0%", "50%", "50%", "0%"];
 
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -985,6 +986,7 @@ export default function PhotoArchive({
         {artistList.map((cat, i) => {
           const color = i === 0 ? "#888" : ARTIST_PALETTE[(i - 1) % ARTIST_PALETTE.length];
           const hw = i === 0 ? "100%" : `${HIGHLIGHT_WIDTHS[(i - 1) % HIGHLIGHT_WIDTHS.length]}%`;
+          const dotRadius = i === 0 ? "50%" : DOT_RADII[(i - 1) % DOT_RADII.length];
           const hlBase = hexToRgba(color, 0.38);
           const hlHover = hexToRgba(color, 0.58);
           const hlActive = hexToRgba(color, 0.72);
@@ -998,6 +1000,7 @@ export default function PhotoArchive({
                 "--cat-hl-hover": hlHover,
                 "--cat-hl-active": hlActive,
                 "--hw": hw,
+                "--dot-radius": dotRadius,
               } as React.CSSProperties}
               onClick={() => setActiveCategory(cat.name)}
             >

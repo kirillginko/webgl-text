@@ -90,7 +90,7 @@
 .catDot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: var(--dot-radius);
   background-color: var(--cat-color);
   flex-shrink: 0;
   order: 1;
