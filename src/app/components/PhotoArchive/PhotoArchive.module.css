@@ -26,6 +26,7 @@
   font-size: 11px;
   line-height: 1.4;
   color: #333;
+  font-weight: bold;
   letter-spacing: 0.01em;
 }
 
@@ -39,6 +40,7 @@
   font-family: "Courier New", Courier, monospace;
   font-size: 11px;
   color: #555;
+  font-weight: bold;
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
@@ -134,8 +136,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .photoFrame {
@@ -219,8 +225,14 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .metaTime {
@@ -278,7 +290,7 @@
   position: absolute;
   -webkit-appearance: none;
   appearance: none;
-  width: 140px;            /* becomes visual height when rotated */
+  width: 140px; /* becomes visual height when rotated */
   height: 1px;
   background: #ccc;
   outline: none;
@@ -297,7 +309,9 @@
   border-radius: 50%;
   background: #444;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    transform 0.15s;
 }
 
 .zoomRange::-webkit-slider-thumb:hover {
@@ -312,7 +326,9 @@
   background: #444;
   border: none;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    transform 0.15s;
 }
 
 .zoomRange::-moz-range-thumb:hover {
@@ -353,8 +369,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50%       { opacity: 1;   }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ── Scrubber ──────────────────────────────────────── */
@@ -418,7 +439,9 @@
   border-radius: 50%;
   background: #444;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    transform 0.15s;
 }
 
 .scrubberRange::-webkit-slider-thumb:hover {
@@ -434,7 +457,9 @@
   background: #444;
   border: none;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    transform 0.15s;
 }
 
 .scrubberRange::-moz-range-thumb:hover {
