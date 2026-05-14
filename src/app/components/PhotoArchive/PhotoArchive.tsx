@@ -801,10 +801,10 @@ function Scene({
 
 // ── Artist list color palette ─────────────────────────────────────────────────
 const ARTIST_PALETTE = [
-  "#ff6b6b", "#ffd93d", "#6bcb77", "#4d96ff", "#ff6bff",
-  "#ff9f43", "#48dbfb", "#ff6b81", "#a29bfe", "#fd79a8",
-  "#00cec9", "#fdcb6e", "#e17055", "#74b9ff", "#55efc4",
-  "#fab1a0", "#81ecec", "#dfe6e9", "#b2bec3", "#636e72",
+  "#ff0000", "#ff6600", "#ffcc00", "#00dd00", "#0088ff",
+  "#cc00ff", "#ff0099", "#00ffcc", "#ff3300", "#ffee00",
+  "#00cc44", "#0044ff", "#ff00cc", "#00eeff", "#ff9900",
+  "#44ff00", "#ff0044", "#00aaff", "#aaff00", "#ff00ff",
 ];
 
 // ── Root Component ────────────────────────────────────────────────────────────
