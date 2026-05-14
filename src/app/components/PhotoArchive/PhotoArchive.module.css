@@ -118,12 +118,15 @@
 
 .catPart1 { background-color: var(--cat-hl); }
 .catPart2 { background-color: var(--cat-hl-2); }
+.catPart3 { background-color: var(--cat-hl-3); }
 
 .catBtn:hover .catPart1 { background-color: var(--cat-hl-hover); }
 .catBtn:hover .catPart2 { background-color: var(--cat-hl-hover-2); }
+.catBtn:hover .catPart3 { background-color: var(--cat-hl-hover-3); }
 
 .catActive .catPart1 { background-color: var(--cat-hl-active); }
 .catActive .catPart2 { background-color: var(--cat-hl-active-2); }
+.catActive .catPart3 { background-color: var(--cat-hl-active-3); }
 
 .count {
   font-size: 8px;

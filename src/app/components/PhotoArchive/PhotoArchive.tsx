@@ -812,8 +812,21 @@ const HIGHLIGHT_WIDTHS = [55, 72, 40, 88, 62, 45, 78, 52, 93, 67, 38, 83, 58, 71
 // Alternating dot shapes — 50% = circle, 0% = square
 const DOT_RADII = ["50%", "0%", "50%", "50%", "0%", "50%", "0%", "50%", "0%", "50%", "50%", "0%"];
 
-// Which artists get a second highlight color on the second word
-const DUAL_HIGHLIGHT = [false, true, false, true, false, false, true, false, true, false, true, false, false, true, false, true, false, false, true, false];
+// 1 = single color, 2 = dual, 3 = triple — ~75% get 2+ colors
+const HIGHLIGHT_COUNTS = [2, 3, 2, 1, 3, 2, 2, 3, 1, 2, 3, 2, 2, 1, 3, 2, 3, 2, 1, 2];
+
+function splitAtSpaces(name: string, count: number): string[] {
+  if (count <= 1) return [name];
+  const spaces: number[] = [];
+  for (let i = 0; i < name.length; i++) if (name[i] === " ") spaces.push(i);
+  if (spaces.length === 0) return [name];
+  const splits = spaces.slice(0, count - 1);
+  const parts: string[] = [];
+  let prev = 0;
+  for (const sp of splits) { parts.push(name.slice(prev, sp + 1)); prev = sp + 1; }
+  parts.push(name.slice(prev));
+  return parts;
+}
 
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -1047,37 +1060,45 @@ export default function PhotoArchive({
           const colorIdx = i === 0 ? -1 : (i - 1) % ARTIST_PALETTE.length;
           const color  = colorIdx < 0 ? "#888" : ARTIST_PALETTE[colorIdx];
           const color2 = colorIdx < 0 ? "#888" : ARTIST_PALETTE[(colorIdx + 7) % ARTIST_PALETTE.length];
+          const color3 = colorIdx < 0 ? "#888" : ARTIST_PALETTE[(colorIdx + 4) % ARTIST_PALETTE.length];
           const hw = i === 0 ? "100%" : `${HIGHLIGHT_WIDTHS[(i - 1) % HIGHLIGHT_WIDTHS.length]}%`;
           const dotRadius = i === 0 ? "50%" : DOT_RADII[(i - 1) % DOT_RADII.length];
-          const isDual = i > 0 && DUAL_HIGHLIGHT[(i - 1) % DUAL_HIGHLIGHT.length] && cat.name.includes(" ");
-          const splitIdx = isDual ? cat.name.indexOf(" ") : -1;
-          const part1 = isDual ? cat.name.slice(0, splitIdx + 1) : cat.name;
-          const part2 = isDual ? cat.name.slice(splitIdx + 1) : "";
+          const rawCount = i === 0 ? 1 : HIGHLIGHT_COUNTS[(i - 1) % HIGHLIGHT_COUNTS.length];
+          const spaceCount = (cat.name.match(/ /g) || []).length;
+          const hCount = Math.min(rawCount, spaceCount + 1);
+          const parts = splitAtSpaces(cat.name, hCount);
+          const partClasses = [styles.catPart1, styles.catPart2, styles.catPart3];
           return (
             <button
               key={cat.name}
               className={`${styles.catBtn} ${activeCategory === cat.name ? styles.catActive : ""}`}
               style={{
                 "--cat-color": color,
-                "--cat-hl":        hexToRgba(color,  0.75),
-                "--cat-hl-2":      hexToRgba(color2, 0.75),
-                "--cat-hl-hover":  hexToRgba(color,  0.9),
-                "--cat-hl-hover-2":hexToRgba(color2, 0.9),
-                "--cat-hl-active": hexToRgba(color,  1.0),
-                "--cat-hl-active-2":hexToRgba(color2,1.0),
+                "--cat-hl":          hexToRgba(color,  0.75),
+                "--cat-hl-2":        hexToRgba(color2, 0.75),
+                "--cat-hl-3":        hexToRgba(color3, 0.75),
+                "--cat-hl-hover":    hexToRgba(color,  0.9),
+                "--cat-hl-hover-2":  hexToRgba(color2, 0.9),
+                "--cat-hl-hover-3":  hexToRgba(color3, 0.9),
+                "--cat-hl-active":   hexToRgba(color,  1.0),
+                "--cat-hl-active-2": hexToRgba(color2, 1.0),
+                "--cat-hl-active-3": hexToRgba(color3, 1.0),
                 "--hw": hw,
                 "--dot-radius": dotRadius,
               } as React.CSSProperties}
               onClick={() => setActiveCategory(cat.name)}
             >
               <span className={styles.catDot} />
-              {isDual ? (
-                <span className={styles.catLabelDual}>
-                  <span className={styles.catPart1}>{part1}</span><span className={styles.catPart2}>{part2}</span><sup className={styles.count}>{cat.count}</sup>
-                </span>
-              ) : (
+              {hCount === 1 ? (
                 <span className={styles.catLabel}>
                   {cat.name}<sup className={styles.count}>{cat.count}</sup>
+                </span>
+              ) : (
+                <span className={styles.catLabelDual}>
+                  {parts.map((part, pi) => (
+                    <span key={pi} className={partClasses[pi]}>{part}</span>
+                  ))}
+                  <sup className={styles.count}>{cat.count}</sup>
                 </span>
               )}
             </button>
