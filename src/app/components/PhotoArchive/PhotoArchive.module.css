@@ -53,6 +53,14 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 1px;
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  /* hide scrollbar visually but keep it functional */
+  scrollbar-width: none;
+}
+
+.categories::-webkit-scrollbar {
+  display: none;
 }
 
 .catBtn {
@@ -108,6 +116,10 @@
 
 .toolBtn:hover {
   color: #333;
+}
+
+.toolBtnActive {
+  color: #222 !important;
 }
 
 /* ── Photo overlay — straight-ahead 2D selected view ─ */
