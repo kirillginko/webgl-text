@@ -104,6 +104,25 @@
   line-height: 1.5;
 }
 
+.catLabelDual {
+  line-height: 1.5;
+}
+
+.catPart1,
+.catPart2 {
+  padding: 0 3px;
+  transition: background-color 0.15s;
+}
+
+.catPart1 { background-color: var(--cat-hl); }
+.catPart2 { background-color: var(--cat-hl-2); }
+
+.catBtn:hover .catPart1 { background-color: var(--cat-hl-hover); }
+.catBtn:hover .catPart2 { background-color: var(--cat-hl-hover-2); }
+
+.catActive .catPart1 { background-color: var(--cat-hl-active); }
+.catActive .catPart2 { background-color: var(--cat-hl-active-2); }
+
 .count {
   font-size: 8px;
   vertical-align: super;

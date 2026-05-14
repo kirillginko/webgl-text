@@ -754,6 +754,9 @@ const HIGHLIGHT_WIDTHS = [55, 72, 40, 88, 62, 45, 78, 52, 93, 67, 38, 83, 58, 71
 // Alternating dot shapes — 50% = circle, 0% = square
 const DOT_RADII = ["50%", "0%", "50%", "50%", "0%", "50%", "0%", "50%", "0%", "50%", "50%", "0%"];
 
+// Which artists get a second highlight color on the second word
+const DUAL_HIGHLIGHT = [false, true, false, true, false, false, true, false, true, false, true, false, false, true, false, true, false, false, true, false];
+
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -984,30 +987,42 @@ export default function PhotoArchive({
       {/* Artist list — top right */}
       <nav className={styles.categories}>
         {artistList.map((cat, i) => {
-          const color = i === 0 ? "#888" : ARTIST_PALETTE[(i - 1) % ARTIST_PALETTE.length];
+          const colorIdx = i === 0 ? -1 : (i - 1) % ARTIST_PALETTE.length;
+          const color  = colorIdx < 0 ? "#888" : ARTIST_PALETTE[colorIdx];
+          const color2 = colorIdx < 0 ? "#888" : ARTIST_PALETTE[(colorIdx + 7) % ARTIST_PALETTE.length];
           const hw = i === 0 ? "100%" : `${HIGHLIGHT_WIDTHS[(i - 1) % HIGHLIGHT_WIDTHS.length]}%`;
           const dotRadius = i === 0 ? "50%" : DOT_RADII[(i - 1) % DOT_RADII.length];
-          const hlBase = hexToRgba(color, 0.75);
-          const hlHover = hexToRgba(color, 0.9);
-          const hlActive = hexToRgba(color, 1.0);
+          const isDual = i > 0 && DUAL_HIGHLIGHT[(i - 1) % DUAL_HIGHLIGHT.length] && cat.name.includes(" ");
+          const splitIdx = isDual ? cat.name.indexOf(" ") : -1;
+          const part1 = isDual ? cat.name.slice(0, splitIdx + 1) : cat.name;
+          const part2 = isDual ? cat.name.slice(splitIdx + 1) : "";
           return (
             <button
               key={cat.name}
               className={`${styles.catBtn} ${activeCategory === cat.name ? styles.catActive : ""}`}
               style={{
                 "--cat-color": color,
-                "--cat-hl": hlBase,
-                "--cat-hl-hover": hlHover,
-                "--cat-hl-active": hlActive,
+                "--cat-hl":        hexToRgba(color,  0.75),
+                "--cat-hl-2":      hexToRgba(color2, 0.75),
+                "--cat-hl-hover":  hexToRgba(color,  0.9),
+                "--cat-hl-hover-2":hexToRgba(color2, 0.9),
+                "--cat-hl-active": hexToRgba(color,  1.0),
+                "--cat-hl-active-2":hexToRgba(color2,1.0),
                 "--hw": hw,
                 "--dot-radius": dotRadius,
               } as React.CSSProperties}
               onClick={() => setActiveCategory(cat.name)}
             >
               <span className={styles.catDot} />
-              <span className={styles.catLabel}>
-                {cat.name}<sup className={styles.count}>{cat.count}</sup>
-              </span>
+              {isDual ? (
+                <span className={styles.catLabelDual}>
+                  <span className={styles.catPart1}>{part1}</span><span className={styles.catPart2}>{part2}</span><sup className={styles.count}>{cat.count}</sup>
+                </span>
+              ) : (
+                <span className={styles.catLabel}>
+                  {cat.name}<sup className={styles.count}>{cat.count}</sup>
+                </span>
+              )}
             </button>
           );
         })}
