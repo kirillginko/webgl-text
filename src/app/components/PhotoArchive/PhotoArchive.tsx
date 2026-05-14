@@ -741,6 +741,14 @@ function Scene({
   );
 }
 
+// ── Artist list color palette ─────────────────────────────────────────────────
+const ARTIST_PALETTE = [
+  "#ff6b6b", "#ffd93d", "#6bcb77", "#4d96ff", "#ff6bff",
+  "#ff9f43", "#48dbfb", "#ff6b81", "#a29bfe", "#fd79a8",
+  "#00cec9", "#fdcb6e", "#e17055", "#74b9ff", "#55efc4",
+  "#fab1a0", "#81ecec", "#dfe6e9", "#b2bec3", "#636e72",
+];
+
 // ── Root Component ────────────────────────────────────────────────────────────
 
 export default function PhotoArchive({
@@ -963,18 +971,22 @@ export default function PhotoArchive({
 
       {/* Artist list — top right */}
       <nav className={styles.categories}>
-        {artistList.map((cat) => (
-          <button
-            key={cat.name}
-            className={`${styles.catBtn} ${
-              activeCategory === cat.name ? styles.catActive : ""
-            }`}
-            onClick={() => setActiveCategory(cat.name)}
-          >
-            {cat.name}
-            <sup className={styles.count}>{cat.count}</sup>
-          </button>
-        ))}
+        {artistList.map((cat, i) => {
+          const color = i === 0 ? "#888" : ARTIST_PALETTE[(i - 1) % ARTIST_PALETTE.length];
+          return (
+            <button
+              key={cat.name}
+              className={`${styles.catBtn} ${activeCategory === cat.name ? styles.catActive : ""}`}
+              style={{ "--cat-color": color } as React.CSSProperties}
+              onClick={() => setActiveCategory(cat.name)}
+            >
+              <span className={styles.catDot} />
+              <span className={styles.catLabel}>
+                {cat.name}<sup className={styles.count}>{cat.count}</sup>
+              </span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* Zoom slider — left centre */}
