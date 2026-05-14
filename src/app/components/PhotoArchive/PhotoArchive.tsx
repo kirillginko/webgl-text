@@ -742,12 +742,23 @@ function Scene({
 }
 
 // ── Artist list color palette ─────────────────────────────────────────────────
+// Colors matched to the reference image — vivid editorial highlighter palette
 const ARTIST_PALETTE = [
-  "#ff0000", "#ff6600", "#ffcc00", "#00dd00", "#0088ff",
-  "#cc00ff", "#ff0099", "#00ffcc", "#ff3300", "#ffee00",
-  "#00cc44", "#0044ff", "#ff00cc", "#00eeff", "#ff9900",
-  "#44ff00", "#ff0044", "#00aaff", "#aaff00", "#ff00ff",
+  "#FF3CAC", "#FF6B00", "#FFE600", "#00E676", "#00B0FF",
+  "#D500F9", "#FF1744", "#00E5FF", "#FF9100", "#76FF03",
+  "#F50057", "#00BFA5", "#FFEA00", "#AA00FF", "#FF6D00",
+  "#18FFFF", "#C6FF00", "#FF4081", "#00E5FF", "#69F0AE",
 ];
+
+// Varied highlight widths — gives the hand-drawn marker feel
+const HIGHLIGHT_WIDTHS = [55, 72, 40, 88, 62, 45, 78, 52, 93, 67, 38, 83, 58, 71, 44, 86, 60, 47, 76, 64];
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 // ── Root Component ────────────────────────────────────────────────────────────
 
@@ -973,11 +984,21 @@ export default function PhotoArchive({
       <nav className={styles.categories}>
         {artistList.map((cat, i) => {
           const color = i === 0 ? "#888" : ARTIST_PALETTE[(i - 1) % ARTIST_PALETTE.length];
+          const hw = i === 0 ? "100%" : `${HIGHLIGHT_WIDTHS[(i - 1) % HIGHLIGHT_WIDTHS.length]}%`;
+          const hlBase = hexToRgba(color, 0.38);
+          const hlHover = hexToRgba(color, 0.58);
+          const hlActive = hexToRgba(color, 0.72);
           return (
             <button
               key={cat.name}
               className={`${styles.catBtn} ${activeCategory === cat.name ? styles.catActive : ""}`}
-              style={{ "--cat-color": color } as React.CSSProperties}
+              style={{
+                "--cat-color": color,
+                "--cat-hl": hlBase,
+                "--cat-hl-hover": hlHover,
+                "--cat-hl-active": hlActive,
+                "--hw": hw,
+              } as React.CSSProperties}
               onClick={() => setActiveCategory(cat.name)}
             >
               <span className={styles.catDot} />
