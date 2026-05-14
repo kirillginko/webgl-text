@@ -78,11 +78,11 @@
 }
 
 .catBtn:hover .catLabel {
-  background-color: color-mix(in srgb, var(--cat-color) 35%, transparent);
+  background-color: color-mix(in srgb, var(--cat-color) 55%, transparent);
 }
 
 .catActive .catLabel {
-  background-color: color-mix(in srgb, var(--cat-color) 50%, transparent);
+  background-color: color-mix(in srgb, var(--cat-color) 70%, transparent);
   font-weight: bold;
   color: #111;
 }
@@ -99,7 +99,7 @@
 .catLabel {
   order: 0;
   padding: 0 3px;
-  background-color: color-mix(in srgb, var(--cat-color) 18%, transparent);
+  background-color: color-mix(in srgb, var(--cat-color) 30%, transparent);
   transition: background-color 0.15s;
   line-height: 1.5;
 }
