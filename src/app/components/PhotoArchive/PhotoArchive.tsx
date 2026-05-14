@@ -14,7 +14,6 @@ type Album = {
   release: WarpRelease; // every card has a release — no HSL-only fallback
 };
 
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 // Normalize artist names so casing variants ("Boards Of Canada" vs "Boards of Canada")
@@ -57,8 +56,8 @@ const SPACING = 0.105;
 const CAM_POS = new THREE.Vector3(-7.76, 0.44, 12.94);
 
 // Camera positions for each view mode
-const STACK_CAM_POS  = new THREE.Vector3(-7.76, 0.44, 12.94);
-const CIRCLE_CAM_POS = new THREE.Vector3(0, 12, 28);   // skewed 3/4 perspective over the ring
+const STACK_CAM_POS = new THREE.Vector3(-7.76, 0.44, 12.94);
+const CIRCLE_CAM_POS = new THREE.Vector3(0, 12, 28); // skewed 3/4 perspective over the ring
 
 // Where the expanded card sits in world space — above the stack, centered
 const SEL_WORLD = new THREE.Vector3(-1, 3.2, 3);
@@ -100,12 +99,15 @@ const RIPPLE_SPREAD = 8; // card-slots of lateral gap at distance 1
 // Each AlbumCard's visual mesh animates within its own group hierarchy.
 // One mesh per card — no ExpandedCard duplicate ever exists.
 
-const STACK_GROUP_MATRIX_INV = new THREE.Matrix4().copy(STACK_GROUP_MATRIX).invert();
+const STACK_GROUP_MATRIX_INV = new THREE.Matrix4()
+  .copy(STACK_GROUP_MATRIX)
+  .invert();
 // SEL_WORLD expressed in stack-group local space
 const SEL_LOCAL_POS = SEL_WORLD.clone().applyMatrix4(STACK_GROUP_MATRIX_INV);
 // FACE_CAM_QUAT in stack-group local space: q_local = STACK_GROUP_QUAT⁻¹ × q_world
 const SEL_LOCAL_QUAT = new THREE.Quaternion()
-  .copy(STACK_GROUP_QUAT).invert()
+  .copy(STACK_GROUP_QUAT)
+  .invert()
   .multiply(FACE_CAM_QUAT);
 
 // ── Circle-view expand — centered in front of the circle camera ───────────────
@@ -125,10 +127,13 @@ const FACE_CIRCLE_CAM_QUAT = (() => {
 })();
 
 // SEL_WORLD_CIRCLE in stack-group local space
-const SEL_LOCAL_POS_CIRCLE = SEL_WORLD_CIRCLE.clone().applyMatrix4(STACK_GROUP_MATRIX_INV);
+const SEL_LOCAL_POS_CIRCLE = SEL_WORLD_CIRCLE.clone().applyMatrix4(
+  STACK_GROUP_MATRIX_INV,
+);
 // FACE_CIRCLE_CAM_QUAT in stack-group local space
 const SEL_LOCAL_QUAT_CIRCLE = new THREE.Quaternion()
-  .copy(STACK_GROUP_QUAT).invert()
+  .copy(STACK_GROUP_QUAT)
+  .invert()
   .multiply(FACE_CIRCLE_CAM_QUAT);
 
 // ── Circle view ───────────────────────────────────────────────────────────────
@@ -138,9 +143,13 @@ const SEL_LOCAL_QUAT_CIRCLE = new THREE.Quaternion()
 // World Y (0,1,0) expressed in stack-group local space — used for vertical lifts
 // in the ring (hover pop, ripple wave). Computed once at module level.
 const CIRCLE_UP_LOCAL = new THREE.Vector3(0, 1, 0).applyQuaternion(
-  new THREE.Quaternion().copy(
-    new THREE.Quaternion().setFromEuler(new THREE.Euler(0.15, -0.7, 0.05, "XYZ")),
-  ).invert(),
+  new THREE.Quaternion()
+    .copy(
+      new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(0.15, -0.7, 0.05, "XYZ"),
+      ),
+    )
+    .invert(),
 );
 
 // ── AlbumCard ─────────────────────────────────────────────────────────────────
@@ -151,11 +160,11 @@ const RIPPLE_WINDOW = 1500; // ms after which ripple is considered gone
 // ── Deal-in animation — calm sequential slide ─────────────────────────────────
 // Cards are ALL mounted immediately (for fast texture loading) but each waits
 // dealDelayMs before starting its slide-in, preserving the one-by-one feel.
-const DEAL_BATCH    = 2;   // cards that share the same deal-start tick
-const DEAL_INTERVAL = 12;  // ms between ticks
-const DEAL_SPEED    = 3.2; // linear-t rate → each card slides in over ~0.31 s
+const DEAL_BATCH = 2; // cards that share the same deal-start tick
+const DEAL_INTERVAL = 12; // ms between ticks
+const DEAL_SPEED = 3.2; // linear-t rate → each card slides in over ~0.31 s
 // Every card slides from this fixed local offset to (0,0,0) — calm, consistent
-const DEAL_OFFSET   = new THREE.Vector3(-3.5, 1.2, 0);
+const DEAL_OFFSET = new THREE.Vector3(-3.5, 1.2, 0);
 
 function AlbumCard({
   album,
@@ -232,7 +241,10 @@ function AlbumCard({
     const texture = TEXTURE_LOADER.load(
       coverUrl,
       (tex) => {
-        if (cancelled) { tex.dispose(); return; }
+        if (cancelled) {
+          tex.dispose();
+          return;
+        }
         tex.colorSpace = THREE.SRGBColorSpace;
         TEXTURE_STORE.set(coverUrl, tex);
         apply(tex);
@@ -257,10 +269,10 @@ function AlbumCard({
   );
 
   const identityQuat = useRef(new THREE.Quaternion());
-  const animT = useRef(0);        // 0 = in stack, 1 = fully expanded
+  const animT = useRef(0); // 0 = in stack, 1 = fully expanded
   const wasSelected = useRef(false);
   // Stack ↔ circle transition progress: 0 = fully in stack, 1 = fully in ring
-  const circularT    = useRef(0);
+  const circularT = useRef(0);
   const transitionTs = useRef(0); // seconds — when this card is scheduled to start moving
   const prevCircView = useRef(false);
   // Deal-in animation: 0 = in the deck, 1 = dealt (one-shot on mount)
@@ -271,19 +283,24 @@ function AlbumCard({
 
   // Expanded target in BASE-group local space (SEL_LOCAL_POS minus this card's basePos offset)
   const expandedLocalPos = useMemo(
-    () => new THREE.Vector3(
-      SEL_LOCAL_POS.x - basePos[0],
-      SEL_LOCAL_POS.y - basePos[1],
-      SEL_LOCAL_POS.z - basePos[2],
-    ),
+    () =>
+      new THREE.Vector3(
+        SEL_LOCAL_POS.x - basePos[0],
+        SEL_LOCAL_POS.y - basePos[1],
+        SEL_LOCAL_POS.z - basePos[2],
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [],
   );
 
   // Circle-view expanded target — scaled with circularRadius so the selected card
   // always appears comfortably in front of the (dynamic) circle camera.
   const expandedLocalPosCircle = useMemo(() => {
-    const selWorld = new THREE.Vector3(0, circularRadius * 0.25, circularRadius * 0.7);
+    const selWorld = new THREE.Vector3(
+      0,
+      circularRadius * 0.25,
+      circularRadius * 0.7,
+    );
     const selLocal = selWorld.clone().applyMatrix4(STACK_GROUP_MATRIX_INV);
     return new THREE.Vector3(
       selLocal.x - basePos[0],
@@ -307,31 +324,30 @@ function AlbumCard({
       stackLocal.y - basePos[1],
       stackLocal.z - basePos[2],
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [circularSlot, circularRadius, totalCircularSlots]);
 
   const circularLocalQuat = useMemo(() => {
     const theta = (2 * Math.PI * circularSlot) / totalCircularSlots;
     // Card faces outward: +Z of mesh points away from ring center
-    const forward = new THREE.Vector3( Math.cos(theta), 0,  Math.sin(theta));
-    const right   = new THREE.Vector3( Math.sin(theta), 0, -Math.cos(theta));
-    const up      = new THREE.Vector3(0, 1, 0);
+    const forward = new THREE.Vector3(Math.cos(theta), 0, Math.sin(theta));
+    const right = new THREE.Vector3(Math.sin(theta), 0, -Math.cos(theta));
+    const up = new THREE.Vector3(0, 1, 0);
     const worldQuat = new THREE.Quaternion().setFromRotationMatrix(
       new THREE.Matrix4().makeBasis(right, up, forward),
     );
     return new THREE.Quaternion()
-      .copy(STACK_GROUP_QUAT).invert()
+      .copy(STACK_GROUP_QUAT)
+      .invert()
       .multiply(worldQuat);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [circularSlot, totalCircularSlots]);
 
   // Hover position: circularLocalPos + 1.4 units along world-up in local space.
   const circularHoverPos = useMemo(() => {
     return circularLocalPos.clone().addScaledVector(CIRCLE_UP_LOCAL, 1.4);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [circularSlot, circularLocalPos]);
-
-
 
   useFrame((_, dt) => {
     const m = meshRef.current;
@@ -398,7 +414,12 @@ function AlbumCard({
       transitionTs.current = nowSec + stagger;
     }
     if (nowSec >= transitionTs.current) {
-      circularT.current = lerp(circularT.current, circularView ? 1 : 0, dt, 3.5);
+      circularT.current = lerp(
+        circularT.current,
+        circularView ? 1 : 0,
+        dt,
+        3.5,
+      );
     }
     const ct = circularT.current;
 
@@ -418,17 +439,26 @@ function AlbumCard({
 
     if (isSelected || animT.current > 0.005) {
       const inRing = ct > 0.5 && circularSlot >= 0;
-      const restPos = !isSelected && hovered
-        ? (inRing ? circularHoverPos : new THREE.Vector3(0, 1.1, 0.5))
-        : (inRing ? circularLocalPos : new THREE.Vector3(0, 0, 0));
-      const restScale = (!isSelected && hovered) ? 1.12 : 1;
-      const restQuat  = inRing ? circularLocalQuat : identityQuat.current;
-      const targetPos  = isSelected
-        ? (inRing ? expandedLocalPosCircle : expandedLocalPos)
+      const restPos =
+        !isSelected && hovered
+          ? inRing
+            ? circularHoverPos
+            : new THREE.Vector3(0, 1.1, 0.5)
+          : inRing
+            ? circularLocalPos
+            : new THREE.Vector3(0, 0, 0);
+      const restScale = !isSelected && hovered ? 1.12 : 1;
+      const restQuat = inRing ? circularLocalQuat : identityQuat.current;
+      const targetPos = isSelected
+        ? inRing
+          ? expandedLocalPosCircle
+          : expandedLocalPos
         : restPos;
       const targetQuat = inRing ? SEL_LOCAL_QUAT_CIRCLE : SEL_LOCAL_QUAT;
       m.position.lerp(targetPos, Math.min(1, dt * 5));
-      m.scale.setScalar(lerp(m.scale.x, isSelected ? SEL_SCALE : restScale, dt, 5));
+      m.scale.setScalar(
+        lerp(m.scale.x, isSelected ? SEL_SCALE : restScale, dt, 5),
+      );
       m.quaternion.slerpQuaternions(restQuat, targetQuat, animT.current);
       return;
     }
@@ -450,16 +480,21 @@ function AlbumCard({
       const filterOffsetX = filterDelta * SPACING;
       const filterOffsetZ = -filterDelta * SPACING;
 
-      let tX = filterOffsetX, tY = 0, tZ = filterOffsetZ, tS = 1;
+      let tX = filterOffsetX,
+        tY = 0,
+        tZ = filterOffsetZ,
+        tS = 1;
       if (mouseHoveredIdx >= 0) {
         // Use compact filteredIdx positions for distance so the ripple spread works
         // correctly in filtered mode (original indices can be far apart).
         const dist = filteredIdx - mouseHoveredFilteredIdx;
         const absDist = Math.abs(dist);
         if (hovered) {
-          tY += 1.1; tS = 1.12;
+          tY += 1.1;
+          tS = 1.12;
         } else if (absDist <= RIPPLE_RADIUS) {
-          const falloff = (Math.cos((absDist / RIPPLE_RADIUS) * Math.PI) + 1) * 0.5;
+          const falloff =
+            (Math.cos((absDist / RIPPLE_RADIUS) * Math.PI) + 1) * 0.5;
           const spread = Math.sign(dist) * RIPPLE_SPREAD * falloff;
           tX += spread * SPACING;
           tZ -= spread * SPACING;
@@ -471,7 +506,8 @@ function AlbumCard({
           const dist = album.idx - rippleCenterRef.current;
           const absDist = Math.abs(dist);
           if (absDist <= RIPPLE_RADIUS && strength > 0.005) {
-            const falloff = (Math.cos((absDist / RIPPLE_RADIUS) * Math.PI) + 1) * 0.5;
+            const falloff =
+              (Math.cos((absDist / RIPPLE_RADIUS) * Math.PI) + 1) * 0.5;
             tY += RIPPLE_LIFT * falloff * strength;
             const spread = Math.sign(dist) * RIPPLE_SPREAD * falloff * strength;
             tX += spread * SPACING;
@@ -490,10 +526,12 @@ function AlbumCard({
 
     // ── Transitioning or settled in circle mode ─────────────────────────────
     if (circularSlot >= 0) {
-      let lift = 0, tScale = 1;
+      let lift = 0,
+        tScale = 1;
       if (ct > 0.9) {
         if (hovered) {
-          lift = 1.4; tScale = 1.2;
+          lift = 1.4;
+          tScale = 1.2;
         } else {
           const age = (performance.now() - rippleTs.current) / 1000;
           if (age < RIPPLE_WINDOW / 1000) {
@@ -501,7 +539,8 @@ function AlbumCard({
             const dist = album.idx - rippleCenterRef.current;
             const absDist = Math.abs(dist);
             if (absDist <= RIPPLE_RADIUS && strength > 0.005) {
-              const falloff = (Math.cos((absDist / RIPPLE_RADIUS) * Math.PI) + 1) * 0.5;
+              const falloff =
+                (Math.cos((absDist / RIPPLE_RADIUS) * Math.PI) + 1) * 0.5;
               lift = RIPPLE_LIFT * falloff * strength;
             }
           }
@@ -515,7 +554,11 @@ function AlbumCard({
       m.position.y = lerp(m.position.y, tY, dt, 8);
       m.position.z = lerp(m.position.z, tZ, dt, 8);
       m.scale.setScalar(lerp(m.scale.x, tScale, dt, 8));
-      m.quaternion.slerpQuaternions(identityQuat.current, circularLocalQuat, ct);
+      m.quaternion.slerpQuaternions(
+        identityQuat.current,
+        circularLocalQuat,
+        ct,
+      );
     }
   });
 
@@ -594,7 +637,9 @@ function AlbumStack({
     } else {
       let compactIdx = 0;
       albums.forEach((a) => {
-        if (normalizeArtist(a.release.artist) === normalizeArtist(activeArtist)) {
+        if (
+          normalizeArtist(a.release.artist) === normalizeArtist(activeArtist)
+        ) {
           map.set(a.id, compactIdx++);
         } else {
           map.set(a.id, -1);
@@ -605,7 +650,9 @@ function AlbumStack({
   }, [albums, activeArtist]);
 
   // Compact position of the hovered card in the current filter (-1 if none)
-  const mouseHoveredFilteredIdx = hoveredId ? (filteredIdxMap.get(hoveredId) ?? -1) : -1;
+  const mouseHoveredFilteredIdx = hoveredId
+    ? (filteredIdxMap.get(hoveredId) ?? -1)
+    : -1;
 
   return (
     <group position={[-5.5, 0, 1]} rotation={[0.15, -0.7, 0.05]}>
@@ -634,10 +681,17 @@ function AlbumStack({
   );
 }
 
-
 // ── CameraController — lerps FOV, position, and lookAt each frame ────────────
 
-function CameraController({ fov, circularView, circCamPos }: { fov: number; circularView: boolean; circCamPos: THREE.Vector3 }) {
+function CameraController({
+  fov,
+  circularView,
+  circCamPos,
+}: {
+  fov: number;
+  circularView: boolean;
+  circCamPos: THREE.Vector3;
+}) {
   const { camera } = useThree();
 
   const targetFovRef = useRef(fov);
@@ -647,7 +701,7 @@ function CameraController({ fov, circularView, circCamPos }: { fov: number; circ
   const targetPos = useRef(STACK_CAM_POS.clone());
   // We lerp a "currentLookAt" vector and call camera.lookAt() each frame
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
-  const targetLookAt  = useRef(new THREE.Vector3(0, 0, 0));
+  const targetLookAt = useRef(new THREE.Vector3(0, 0, 0));
 
   useEffect(() => {
     if (circularView) {
@@ -736,7 +790,11 @@ function Scene({
         onClick={onClick}
       />
 
-      <CameraController fov={fov} circularView={circularView} circCamPos={circCamPos} />
+      <CameraController
+        fov={fov}
+        circularView={circularView}
+        circCamPos={circCamPos}
+      />
     </>
   );
 }
@@ -848,7 +906,9 @@ export default function PhotoArchive({
       activeCategory === "all"
         ? albums
         : albums.filter(
-            (a) => normalizeArtist(a.release.artist) === normalizeArtist(activeCategory),
+            (a) =>
+              normalizeArtist(a.release.artist) ===
+              normalizeArtist(activeCategory),
           ),
     [albums, activeCategory],
   );
@@ -898,14 +958,11 @@ export default function PhotoArchive({
   const pad = (n: number) => String(n).padStart(2, "0");
   const timeStr = `${pad(current.getHours())}:${pad(current.getMinutes())}:${pad(current.getSeconds())}`;
 
-  const handleClick = useCallback(
-    (album: Album) => {
-      setSelectedAlbum((prev) => (prev?.id === album.id ? null : album));
-      setHoveredId(null);
-      document.body.style.cursor = "default";
-    },
-    []
-  );
+  const handleClick = useCallback((album: Album) => {
+    setSelectedAlbum((prev) => (prev?.id === album.id ? null : album));
+    setHoveredId(null);
+    document.body.style.cursor = "default";
+  }, []);
   const handleClose = useCallback(() => {
     setSelectedAlbum(null);
     setHoveredId(null);
@@ -915,13 +972,13 @@ export default function PhotoArchive({
   // CARD_W / (2π) ≈ 0.231 gives touching cards; 0.25 adds a small visible gap.
   const circularRadius = useMemo(
     () => Math.max(20, albums.length * 0.25),
-    [albums]
+    [albums],
   );
   // Low Y + forward Z puts the camera at near-eye-level, looking at the ring from the front.
   // Y=8 offset on the ring itself keeps it sitting up in frame rather than at ground level.
   const circCamPos = useMemo(
     () => new THREE.Vector3(0, circularRadius * 0.15 + 8, circularRadius * 1.5),
-    [circularRadius]
+    [circularRadius],
   );
 
   return (
@@ -959,7 +1016,7 @@ export default function PhotoArchive({
       </div>
 
       {/* "every : second" — top centre */}
-      <div className={styles.subtitle}>every : second</div>
+      <div className={styles.subtitle}>Nowhere : Now</div>
 
       {/* Artist list — top right */}
       <nav className={styles.categories}>
@@ -1032,7 +1089,8 @@ export default function PhotoArchive({
       {filteredAlbums.length > 1 && (
         <div className={styles.scrubber}>
           <span className={styles.scrubberLabel}>
-            {String(scrollOffset + 1).padStart(3, "0")} / {filteredAlbums.length}
+            {String(scrollOffset + 1).padStart(3, "0")} /{" "}
+            {filteredAlbums.length}
           </span>
           <div className={styles.scrubberTrack}>
             <input
@@ -1130,10 +1188,42 @@ function CircleViewIcon() {
       {/* Outer ring */}
       <circle cx="7" cy="7" r="5.8" />
       {/* Small squares around the ring representing albums */}
-      <rect x="5.5" y="0.2" width="3" height="1.8" rx="0.4" fill="currentColor" stroke="none" />
-      <rect x="5.5" y="12" width="3" height="1.8" rx="0.4" fill="currentColor" stroke="none" />
-      <rect x="0.2" y="5.5" width="1.8" height="3" rx="0.4" fill="currentColor" stroke="none" />
-      <rect x="12" y="5.5" width="1.8" height="3" rx="0.4" fill="currentColor" stroke="none" />
+      <rect
+        x="5.5"
+        y="0.2"
+        width="3"
+        height="1.8"
+        rx="0.4"
+        fill="currentColor"
+        stroke="none"
+      />
+      <rect
+        x="5.5"
+        y="12"
+        width="3"
+        height="1.8"
+        rx="0.4"
+        fill="currentColor"
+        stroke="none"
+      />
+      <rect
+        x="0.2"
+        y="5.5"
+        width="1.8"
+        height="3"
+        rx="0.4"
+        fill="currentColor"
+        stroke="none"
+      />
+      <rect
+        x="12"
+        y="5.5"
+        width="1.8"
+        height="3"
+        rx="0.4"
+        fill="currentColor"
+        stroke="none"
+      />
     </svg>
   );
 }
