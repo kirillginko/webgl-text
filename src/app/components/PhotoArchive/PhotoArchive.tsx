@@ -1044,9 +1044,9 @@ export default function PhotoArchive({
           const color = i === 0 ? "#888" : ARTIST_PALETTE[(i - 1) % ARTIST_PALETTE.length];
           const hw = i === 0 ? "100%" : `${HIGHLIGHT_WIDTHS[(i - 1) % HIGHLIGHT_WIDTHS.length]}%`;
           const dotRadius = i === 0 ? "50%" : DOT_RADII[(i - 1) % DOT_RADII.length];
-          const hlBase = hexToRgba(color, 0.38);
-          const hlHover = hexToRgba(color, 0.58);
-          const hlActive = hexToRgba(color, 0.72);
+          const hlBase = hexToRgba(color, 0.75);
+          const hlHover = hexToRgba(color, 0.9);
+          const hlActive = hexToRgba(color, 1.0);
           return (
             <button
               key={cat.name}
