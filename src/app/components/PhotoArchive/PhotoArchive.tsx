@@ -126,10 +126,6 @@ const FACE_CIRCLE_CAM_QUAT = (() => {
   );
 })();
 
-// SEL_WORLD_CIRCLE in stack-group local space
-const SEL_LOCAL_POS_CIRCLE = SEL_WORLD_CIRCLE.clone().applyMatrix4(
-  STACK_GROUP_MATRIX_INV,
-);
 // FACE_CIRCLE_CAM_QUAT in stack-group local space
 const SEL_LOCAL_QUAT_CIRCLE = new THREE.Quaternion()
   .copy(STACK_GROUP_QUAT)
@@ -340,7 +336,6 @@ function AlbumCard({
       .copy(STACK_GROUP_QUAT)
       .invert()
       .multiply(worldQuat);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [circularSlot, totalCircularSlots]);
 
   // Hover position: circularLocalPos + 1.4 units along world-up in local space.
@@ -598,7 +593,6 @@ function AlbumCard({
 function AlbumStack({
   albums,
   hoveredId,
-  scrollOffset,
   rippleTs,
   rippleCenterRef,
   selectedAlbumIdx,
@@ -611,7 +605,6 @@ function AlbumStack({
 }: {
   albums: Album[];
   hoveredId: string | null;
-  scrollOffset: number;
   rippleTs: React.RefObject<number>;
   rippleCenterRef: React.RefObject<number>;
   selectedAlbumIdx: number;
@@ -739,7 +732,6 @@ function Scene({
   albums,
   hoveredId,
   selectedAlbum,
-  scrollOffset,
   rippleTs,
   rippleCenterRef,
   fov,
@@ -755,7 +747,6 @@ function Scene({
   albums: Album[];
   hoveredId: string | null;
   selectedAlbum: Album | null;
-  scrollOffset: number;
   rippleTs: React.RefObject<number>;
   rippleCenterRef: React.RefObject<number>;
   fov: number;
@@ -778,7 +769,6 @@ function Scene({
       <AlbumStack
         albums={albums}
         hoveredId={hoveredId}
-        scrollOffset={scrollOffset}
         rippleTs={rippleTs}
         rippleCenterRef={rippleCenterRef}
         selectedAlbumIdx={selectedAlbum?.idx ?? -1}
@@ -842,8 +832,6 @@ export default function PhotoArchive({
 }: {
   initialReleases?: WarpRelease[];
 }) {
-  const START = useMemo(() => new Date(2018, 4, 28, 8, 45, 0), []);
-  const [elapsed, setElapsed] = useState(0);
   const [activeCategory, setActiveCategory] = useState("all");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
@@ -874,11 +862,6 @@ export default function PhotoArchive({
     [],
   );
 
-  // Clock
-  useEffect(() => {
-    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   // One card per release — data arrives as a server-side prop, no fetch needed
   const albums = useMemo<Album[]>(
@@ -1030,7 +1013,6 @@ export default function PhotoArchive({
           albums={albums}
           hoveredId={hoveredId}
           selectedAlbum={selectedAlbum}
-          scrollOffset={scrollOffset}
           rippleTs={rippleTs}
           rippleCenterRef={rippleCenterRef}
           fov={fov}
