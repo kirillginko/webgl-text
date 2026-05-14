@@ -499,7 +499,7 @@
   {
     "mbid": "2e89bfc1-ef2a-4b76-9e60-c449960ef3f8",
     "title": "It!",
-    "artist": "Coco Steel & Lovebomb",
+    "artist": "Coco Steel and Lovebomb",
     "date": "1994-08-08",
     "coverUrl": "/covers/2e89bfc1-ef2a-4b76-9e60-c449960ef3f8.jpg"
   },
@@ -884,7 +884,7 @@
   {
     "mbid": "16ac4e11-1d80-4db8-977c-ec21b316e0b8",
     "title": "Blech",
-    "artist": "Mr Strictly",
+    "artist": "Mr. Strictly",
     "date": "1995-12-11",
     "coverUrl": "/covers/16ac4e11-1d80-4db8-977c-ec21b316e0b8.jpg"
   },
@@ -1405,13 +1405,6 @@
     "artist": "Broadcast",
     "date": "1997-06-09",
     "coverUrl": "/covers/0efafeca-af18-33b7-a1ba-279203b86676.jpg"
-  },
-  {
-    "mbid": "0f5dbccc-4a24-4a6d-8b4c-3f413d198ce3",
-    "title": "Stay Down",
-    "artist": "2 Lone Swordsmen",
-    "date": "1998-10-19",
-    "coverUrl": "/covers/0f5dbccc-4a24-4a6d-8b4c-3f413d198ce3.jpg"
   },
   {
     "mbid": "11939557-adb6-4f5c-8f80-9b1822b466a7",
@@ -2354,7 +2347,7 @@
   {
     "mbid": "1f2614d4-c7a3-4ba6-929a-0e5570c96768",
     "title": "Geogaddi",
-    "artist": "Boards Of Canada",
+    "artist": "Boards of Canada",
     "date": "2001-12",
     "coverUrl": "/covers/1f2614d4-c7a3-4ba6-929a-0e5570c96768.jpg"
   },
