@@ -111,9 +111,6 @@ const SEL_LOCAL_QUAT = new THREE.Quaternion()
   .multiply(FACE_CAM_QUAT);
 
 // ── Circle-view expand — centered in front of the circle camera ───────────────
-// Card appears large, centered, and face-on to the overhead camera.
-const SEL_WORLD_CIRCLE = new THREE.Vector3(0, 5, 14);
-
 const FACE_CIRCLE_CAM_QUAT = (() => {
   // The card should face the circle camera: its +Z points toward CIRCLE_CAM_POS.
   const forward = CIRCLE_CAM_POS.clone().normalize(); // camera is at (0,12,28)
